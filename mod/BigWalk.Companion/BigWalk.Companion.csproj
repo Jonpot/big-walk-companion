@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GamePath Condition="'$(GamePath)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Big Walk</GamePath>
+    <AssemblyName>BigWalk.Companion</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(GamePath)\BepInEx\core\BepInEx.Core.dll" Private="false" />
+    <Reference Include="$(GamePath)\BepInEx\core\BepInEx.Unity.IL2CPP.dll" Private="false" />
+    <Reference Include="$(GamePath)\BepInEx\core\Il2CppInterop.Runtime.dll" Private="false" />
+    <Reference Include="$(GamePath)\BepInEx\interop\Assembly-CSharp.dll" Private="false" />
+    <Reference Include="$(GamePath)\BepInEx\interop\Mirror.dll" Private="false" />
+    <Reference Include="$(GamePath)\BepInEx\interop\Il2Cppmscorlib.dll" Private="false" />
+    <Reference Include="$(GamePath)\BepInEx\interop\UnityEngine.CoreModule.dll" Private="false" Aliases="UnityCore" />
+    <Reference Include="$(GamePath)\BepInEx\interop\UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="$(GamePath)\BepInEx\interop\Unity.Splines.dll" Private="false" />
+    <Reference Include="$(GamePath)\BepInEx\interop\Unity.Mathematics.dll" Private="false" />
+    <Reference Include="$(GamePath)\BepInEx\interop\UnityEngine.ImageConversionModule.dll" Private="false" />
+  </ItemGroup>
+</Project>

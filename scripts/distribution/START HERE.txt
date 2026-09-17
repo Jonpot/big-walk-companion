@@ -1,0 +1,43 @@
+BIG WALK COMPANION v0.1.0 - WINDOWS
+
+1. Extract the entire ZIP into a writable folder. Do not run inside the ZIP.
+2. Close Big Walk and double-click Install.cmd.
+3. The installer locates Steam, installs the loader and plugin, then launches
+   Big Walk and the companion. Join a world. The first modded launch can take
+   several minutes. Keep the companion command window open.
+
+The map is exported from your own game installation and comes pre-aligned.
+If it stays blank, open the in-game paper map. Automatic map export is new
+and still needs first-run validation on another machine.
+For later sessions, launch the game and double-click Start Companion.cmd.
+No Node.js or .NET SDK installation is needed.
+
+Select the player whose area notes you want to follow. Draw an area, write
+notes, and use the bounds editor to move or resize it. Images can be pasted
+or uploaded in the Markdown editor. Export/Import transfers notes and images.
+Each player runs a local companion; live shared notes are not included.
+
+UPDATING AND DATA
+Keep your data folder, or export notes before replacing a release. Notes and
+images are in data/route-pack.json. Existing loader settings are preserved.
+Replaced companion DLLs are backed up in backups/. Recordings are under the
+game's BepInEx/companion and are not automatically pruned. Delete unwanted
+session-*.jsonl files with the game closed.
+
+TROUBLESHOOTING
+- No positions: join a world and inspect BepInEx/LogOutput.log in the game
+  folder for Big Walk Companion. Share diagnostic logs privately if needed.
+- Loader conflict: existing unrecognized loader files are not overwritten.
+  Use BepInEx 6 Unity IL2CPP Windows x64 (not Mono or BepInEx 5).
+  Build: https://builds.bepinex.dev/projects/bepinex_be
+  Setup: https://docs.bepinex.dev/master/articles/user_guide/installation/unity_il2cpp.html
+  Included tested version: 6.0.0-be.788+5b766a3.
+- Access denied: run Install.cmd as administrator if the game folder requires
+  it. Normal companion use does not require administrator access.
+- Wrong folder: delete game-path.txt beside this file and start again.
+- Removal: close the game and delete only the game folder's
+  BepInEx/plugins/BigWalk.Companion/BigWalk.Companion.dll.
+
+Game updates may require a new plugin build. Game artwork is not bundled.
+Third-party runtime notices are in licenses/.
+Source and updates: https://github.com/Jonpot/big-walk-companion

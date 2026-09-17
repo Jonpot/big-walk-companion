@@ -1,0 +1,12 @@
+.local/
+**/bin/
+**/obj/
+node_modules/
+data/
+.env
+from_harry/
+releases/
+
+game-path.txt
+backups/
+*.log
