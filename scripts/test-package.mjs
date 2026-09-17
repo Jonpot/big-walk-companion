@@ -36,7 +36,12 @@ try {
   assert.equal((await (await fetch(origin+'/api/live')).json()).frame,null);
   assert.deepEqual(await (await fetch(origin+'/api/recordings')).json(),[]);
   const mapStatus=await(await fetch(origin+'/api/map-status')).json();
-  if(!mapStatus.available){assert.equal((await fetch(origin+'/map.png')).status,404);const folder=path.join(fixture,'nonexistent-test-game/BepInEx/companion');await fs.mkdir(folder,{recursive:true});await fs.writeFile(path.join(folder,'map.png'),Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1cAAAAASUVORK5CYII=','base64'));assert.equal((await(await fetch(origin+'/api/map-status')).json()).available,true);}
+  assert.equal(mapStatus.available,true,'Bundled map must work without a game installation or save');
+  const mapBytes=Buffer.from(await(await fetch(origin+'/map.png')).arrayBuffer());
+  assert.deepEqual(mapBytes,await fs.readFile(path.join(root,'companion/map.png')));
+  assert.equal(mapBytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+  assert.equal(mapBytes.readUInt32BE(16),4096);
+  assert.equal(mapBytes.readUInt32BE(20),4096);
   for(const asset of ['/','/map.png','/app.mjs','/core.mjs','/styles.css','/notes.mjs','/markdown.mjs','/vendor.mjs']) {
     const response=await fetch(origin+asset);assert.equal(response.status,200,asset);
     assert.ok((await response.arrayBuffer()).byteLength>0,asset);
@@ -47,5 +52,5 @@ try {
   const onDisk=JSON.parse(await fs.readFile(path.join(fixture,'route-pack.json'),'utf8'));
   assert.deepEqual(onDisk.pack.assets,state.pack.assets);
   assert.equal(onDisk.revision,1);
-  console.log(`PASS: ${manifest.files.length} manifest hashes, bundled Node startup, empty calibrated starter, all UI assets, no recordings, image asset persistence in isolated fixture.`);
+  console.log(`PASS: ${manifest.files.length} manifest hashes, bundled Node startup, 4096px map without game/save, empty calibrated starter, all UI assets, no recordings, image asset persistence in isolated fixture.`);
 } finally { server.kill(); }

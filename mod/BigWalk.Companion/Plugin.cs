@@ -15,7 +15,7 @@ namespace BigWalk.Companion;
 [BepInPlugin("com.jonpot.bigwalk.companion", "Big Walk Companion", Plugin.Version)]
 public sealed class Plugin : BasePlugin
 {
-    internal const string Version = "0.1.1";
+    internal const string Version = "0.1.2";
     public override void Load()
     {
         PositionReader.Log = Log;
@@ -25,12 +25,17 @@ public sealed class Plugin : BasePlugin
         Directory.CreateDirectory(PositionReader.OutputDirectory);
         PositionReader.IncludeRawTrainData = Config.Bind("Diagnostics", "IncludeRawTrainData", false,
             "Include verbose per-car diagnostics. Off keeps normal recordings small.").Value;
-        PositionReader.EnableExperimentalMapExport = Config.Bind("Map", "EnableExperimentalMapExport", false,
-            "EXPERIMENTAL: Unity PNG encoding has caused a fatal stack overflow on Unity 6000.3.17f1 with BepInEx build 788. Keep disabled. Existing exported map.png files still work.").Value;
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                if (BundledMap.WriteIfMissing(PositionReader.OutputDirectory))
+                    Log.LogInfo("Installed the bundled companion map. No game progress or texture export is required.");
+            }
+            catch (Exception ex) { Log.LogWarning($"Could not write the bundled map: {ex.Message}"); }
+        });
         AddComponent<PositionReader>();
         Log.LogInfo($"Position reader loaded. Output: {PositionReader.OutputDirectory}");
-        if (!PositionReader.EnableExperimentalMapExport)
-            Log.LogInfo("Automatic map export is disabled to avoid the reported Unity PNG encoding crash. Existing map files are still supported.");
     }
 }
 
@@ -39,7 +44,6 @@ public sealed partial class PositionReader : MonoBehaviour
     internal static ManualLogSource Log = null!;
     internal static string OutputDirectory = "";
     internal static bool IncludeRawTrainData;
-    internal static bool EnableExperimentalMapExport;
     private readonly string runId = Guid.NewGuid().ToString("N");
     private readonly Channel<string> snapshots = Channel.CreateBounded<string>(new BoundedChannelOptions(1)
         { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true, SingleWriter = true });
@@ -64,7 +68,6 @@ public sealed partial class PositionReader : MonoBehaviour
             {
                 nextMapCheck = Time.unscaledTime + 10;
                 if (!mapCameraCaptured) CaptureMapCamera();
-                if (EnableExperimentalMapExport) ExportMapTexture();
             }
             var players = new List<PlayerSample>();
             var characters = PlayerCharacter.allPlayerCharacters;

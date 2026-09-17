@@ -1,4 +1,4 @@
-BIG WALK COMPANION v0.1.1 - WINDOWS
+BIG WALK COMPANION v0.1.2 - WINDOWS
 
 1. Extract the entire ZIP into a writable folder. Do not run inside the ZIP.
 2. Close Big Walk and double-click Install.cmd.
@@ -11,13 +11,11 @@ BIG WALK COMPANION v0.1.1 - WINDOWS
    Join a world. The first modded launch can take
    several minutes. Keep the companion command window open.
 
-Map alignment is included, but artwork is not bundled. Automatic map export
-is disabled in v0.1.1 after a reported fatal Unity PNG encoding crash.
-An existing BepInEx/companion/map.png still works. Preserve that file during
-updates. Without an existing image, tracking can run but the background map
-will remain unavailable. Do not enable experimental export on this build.
-If you have a map image extracted from your own game, copy it to the selected
-BepInEx/companion/map.png with the game closed, then start the companion.
+The calibrated map image is included in the mod and companion package.
+You do not need to finish the starting area, have a progressed save, or open
+the in-game map. The PNG encoding code that caused the crash is removed.
+Existing BepInEx/companion/map.png files are preserved; the bundled image
+also works immediately when the game is not running.
 For later sessions, launch the game and double-click Start Companion.cmd.
 No Node.js or .NET SDK installation is needed.
 Launchers prefer PowerShell 7 (pwsh.exe) and fall back to Windows PowerShell.
@@ -63,7 +61,7 @@ TROUBLESHOOTING
 - Removal: close the game and delete only the game folder's
   BepInEx/plugins/BigWalk.Companion/BigWalk.Companion.dll.
 
-Game updates may require a new plugin build. Game artwork is not bundled.
+Game updates may require a new plugin build. Map artwork is by House House.
 Third-party runtime notices are in licenses/.
 Source and updates: https://github.com/Jonpot/big-walk-companion
 

@@ -1,4 +1,4 @@
-param([string]$NodePath = '', [switch]$SkipBuild, [string]$Version='0.1.1')
+param([string]$NodePath = '', [switch]$SkipBuild, [string]$Version='0.1.2')
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
 if (!$NodePath) { $NodePath = (Get-Command node).Source }
@@ -30,6 +30,7 @@ foreach ($folder in @('companion', 'runtime', 'mod', 'installer', 'data\map-cand
 }
 Copy-Item -LiteralPath (Join-Path $projectRoot 'companion\dist') -Destination (Join-Path $stage 'companion') -Recurse
 Copy-Item -LiteralPath (Join-Path $projectRoot 'companion\server.mjs') -Destination (Join-Path $stage 'companion')
+Copy-Item -LiteralPath (Join-Path $projectRoot 'assets\map.png') -Destination (Join-Path $stage 'companion\map.png')
 Copy-Item -LiteralPath $NodePath -Destination (Join-Path $stage 'runtime\node.exe')
 Copy-Item -LiteralPath $nodeLicense -Destination (Join-Path $stage 'licenses\Node-LICENSE.txt')
 Copy-Item -LiteralPath $bepLicense -Destination (Join-Path $stage 'licenses\BepInEx-LICENSE.txt')

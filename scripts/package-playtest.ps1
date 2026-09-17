@@ -30,6 +30,7 @@ foreach ($folder in @('companion', 'runtime', 'mod', 'installer', 'data\map-cand
 }
 Copy-Item -LiteralPath (Join-Path $projectRoot 'companion\dist') -Destination (Join-Path $stage 'companion') -Recurse
 Copy-Item -LiteralPath (Join-Path $projectRoot 'companion\server.mjs') -Destination (Join-Path $stage 'companion')
+Copy-Item -LiteralPath (Join-Path $projectRoot 'assets\map.png') -Destination (Join-Path $stage 'companion\map.png')
 Copy-Item -LiteralPath $NodePath -Destination (Join-Path $stage 'runtime\node.exe')
 Copy-Item -LiteralPath $nodeLicense -Destination (Join-Path $stage 'licenses\Node-LICENSE.txt')
 Copy-Item -LiteralPath $bepLicense -Destination (Join-Path $stage 'licenses\BepInEx-LICENSE.txt')
@@ -37,7 +38,6 @@ Copy-Item -LiteralPath $bepLicense -Destination (Join-Path $stage 'licenses\BepI
 if ($LASTEXITCODE -ne 0) { throw 'Browser dependency license collection failed.' }
 Copy-Item -LiteralPath $loaderArchive -Destination (Join-Path $stage "installer\$loaderName")
 Copy-Item -LiteralPath (Join-Path $projectRoot 'mod\BigWalk.Companion\bin\Release\net6.0\BigWalk.Companion.dll') -Destination (Join-Path $stage 'mod')
-Copy-Item -LiteralPath (Join-Path $projectRoot 'data\map-candidates\PaperMapSaved-270.png') -Destination (Join-Path $stage 'data\map-candidates')
 foreach ($name in @('Install.cmd', 'Start Companion.cmd', 'Collect Diagnostics.cmd', 'START HERE.txt')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "distribution\$name") -Destination $stage
 }

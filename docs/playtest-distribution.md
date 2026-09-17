@@ -7,14 +7,14 @@ packaging time, so run after completing companion changes.
 
 Inputs: installed game's interop assemblies for compilation; the original
 verified `.local/downloads/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.788.zip`; Node.js
-on PATH (override with `-NodePath`); current extracted map and route calibration.
+on PATH (override with `-NodePath`); bundled `assets/map.png` and current route calibration.
 Runtime license notices are downloaded from the official source repositories
 if not cached. No SDK is required on the recipient's machine.
 
-Only the map and calibration are included from `data/`. Areas, notes, images,
+Only calibration is included from `data/`; the map comes from `assets/map.png`. Areas, notes, images,
 recordings, player identifiers, paths to Jon's game, diagnostics, and Harry's
-source archive are excluded. Areas start empty. The extracted game map is
-included for the authorized private friend test, not a public asset release.
+source archive are excluded. Areas start empty. As of v0.1.2, the calibrated
+map is included in both the public release and private playtest packages.
 
 The installer discovers Steam library paths, falls back to a folder prompt,
 and stores the chosen path beside the launcher. It checks that the game is

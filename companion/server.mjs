@@ -14,7 +14,7 @@ await fs.mkdir(data,{recursive:true});
 const packPath=path.join(data,'route-pack.json');
 let state={revision:0,pack:blankPack()};
 try{state.pack=validatePack(JSON.parse(await fs.readFile(path.join(root,'default-route.json'),'utf8')));}catch(e){if(e.code!=='ENOENT')throw e;}
-async function mapFile(){for(const file of [path.join(assets,'map-candidates/PaperMapSaved-270.png'),path.join(telemetry,'map.png')]){try{await fs.access(file);return file;}catch(e){if(e.code!=='ENOENT')throw e;}}return null;}
+async function mapFile(){for(const file of [path.join(assets,'map-candidates/PaperMapSaved-270.png'),path.join(telemetry,'map.png'),path.join(root,'map.png'),path.join(root,'../assets/map.png')]){try{await fs.access(file);return file;}catch(e){if(e.code!=='ENOENT')throw e;}}return null;}
 try {const saved=JSON.parse(await fs.readFile(packPath,'utf8')); state={revision:saved.revision,pack:validatePack(saved.pack)};}
 catch(e){if(e.code!=='ENOENT') throw new Error(`Cannot read saved route pack: ${e.message}`);}
 let writeQueue=Promise.resolve();
