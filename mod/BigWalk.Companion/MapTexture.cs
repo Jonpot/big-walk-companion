@@ -17,7 +17,9 @@ public sealed partial class PositionReader
     [HideFromIl2Cpp]
     private void ExportMapTexture()
     {
-        if (mapTextureExported) return;
+        // A native encoding failure can recurse in interop exception formatting and
+        // terminate the process with StackOverflowException; a catch cannot contain it.
+        if (!EnableExperimentalMapExport || mapTextureExported) return;
         var target = Path.Combine(OutputDirectory, "map.png");
         if (File.Exists(target)) { mapTextureExported = true; return; }
         try

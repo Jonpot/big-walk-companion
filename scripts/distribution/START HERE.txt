@@ -1,16 +1,36 @@
-BIG WALK COMPANION v0.1.0 - WINDOWS
+BIG WALK COMPANION v0.1.1 - WINDOWS
 
 1. Extract the entire ZIP into a writable folder. Do not run inside the ZIP.
 2. Close Big Walk and double-click Install.cmd.
-3. The installer locates Steam, installs the loader and plugin, then launches
-   Big Walk and the companion. Join a world. The first modded launch can take
+3. Choose Enter for a normal installation, or M if you launch through a mod
+   manager. For M, open the active profile folder in your manager and paste
+   that folder path (or its BepInEx folder). The choice is remembered.
+4. A normal install locates Steam, installs the loader and plugin, then launches
+   Big Walk and the companion. For a managed profile, launch MODDED through
+   the manager yourself; the installer opens the companion using that profile.
+   Join a world. The first modded launch can take
    several minutes. Keep the companion command window open.
 
-The map is exported from your own game installation and comes pre-aligned.
-If it stays blank, open the in-game paper map. Automatic map export is new
-and still needs first-run validation on another machine.
+Map alignment is included, but artwork is not bundled. Automatic map export
+is disabled in v0.1.1 after a reported fatal Unity PNG encoding crash.
+An existing BepInEx/companion/map.png still works. Preserve that file during
+updates. Without an existing image, tracking can run but the background map
+will remain unavailable. Do not enable experimental export on this build.
+If you have a map image extracted from your own game, copy it to the selected
+BepInEx/companion/map.png with the game closed, then start the companion.
 For later sessions, launch the game and double-click Start Companion.cmd.
 No Node.js or .NET SDK installation is needed.
+Launchers prefer PowerShell 7 (pwsh.exe) and fall back to Windows PowerShell.
+
+MOD MANAGERS
+Install the BepInEx 6 IL2CPP x64 package in the selected profile first. The
+companion installs only its plugin into that profile; it does not replace
+the manager's loader or launch the game outside the manager.
+Start Companion.cmd remembers the profile for map, positions, and recordings.
+To switch profiles, run Install again and choose M. To return to a normal
+game-folder installation, choose D. The installer prints both selected paths.
+Advanced: Install.cmd -GamePath "C:\...\Big Walk" -BepInExPath "C:\...\profile"
+Use -UseGameFolder instead of -BepInExPath to select the normal installation.
 
 Select the player whose area notes you want to follow. Draw an area, write
 notes, and use the bounds editor to move or resize it. Images can be pasted
@@ -21,13 +41,17 @@ UPDATING AND DATA
 Keep your data folder, or export notes before replacing a release. Notes and
 images are in data/route-pack.json. Existing loader settings are preserved.
 Replaced companion DLLs are backed up in backups/. Recordings are under the
-game's BepInEx/companion and are not automatically pruned. Delete unwanted
+selected BepInEx/companion and are not automatically pruned. Delete unwanted
 session-*.jsonl files with the game closed.
 
 TROUBLESHOOTING
-- No positions: join a world and inspect BepInEx/LogOutput.log in the game
-  folder for Big Walk Companion. Share diagnostic logs privately if needed.
+- No positions: join a world and inspect LogOutput.log inside the selected
+  BepInEx folder for Big Walk Companion. For a managed profile, launch modded.
 - Loader conflict: existing unrecognized loader files are not overwritten.
+  Matching files from the bundled loader can be kept while missing files are
+  installed. A different winhttp.dll alone does not prove BepInEx is absent:
+  it may belong to a manager or another loader. Do not delete it blindly.
+  The error shows the game folder checked and the expected BepInEx DLL.
   Use BepInEx 6 Unity IL2CPP Windows x64 (not Mono or BepInEx 5).
   Build: https://builds.bepinex.dev/projects/bepinex_be
   Setup: https://docs.bepinex.dev/master/articles/user_guide/installation/unity_il2cpp.html
@@ -35,9 +59,34 @@ TROUBLESHOOTING
 - Access denied: run Install.cmd as administrator if the game folder requires
   it. Normal companion use does not require administrator access.
 - Wrong folder: delete game-path.txt beside this file and start again.
+- Missing/moved profile: run Install again and select the current profile.
 - Removal: close the game and delete only the game folder's
   BepInEx/plugins/BigWalk.Companion/BigWalk.Companion.dll.
 
 Game updates may require a new plugin build. Game artwork is not bundled.
 Third-party runtime notices are in licenses/.
 Source and updates: https://github.com/Jonpot/big-walk-companion
+
+CRASHES AND DIAGNOSTICS
+Before relaunching after a crash, double-click Collect Diagnostics.cmd.
+It creates a ZIP under diagnostics/ with existing Unity/BepInEx logs, the
+latest position snapshot, plugin inventory, and available crash text logs.
+No upload occurs. Review the ZIP and send it privately with the crash time,
+time zone, what you were doing, and the mod manager/profile used.
+Logs can contain player names and local paths. Notes, saves, artwork, and
+full session recordings are excluded. Missing logs are listed in README.txt.
+Optional: Collect Diagnostics.cmd -IncludeCrashDumps includes available .dmp
+files (up to 100 MB each, 200 MB total collected files). Dumps can contain
+process memory. Oversized or unreadable files are listed, not collected.
+For an older install, -BepInExPath "C:\...\profile" selects managed logs.
+
+Manual collection:
+  %USERPROFILE%\AppData\LocalLow\House House\Big Walk\Player.log
+  %USERPROFILE%\AppData\LocalLow\House House\Big Walk\Player-prev.log
+  The newest bigwalk-*.log files in the same folder
+  <selected BepInEx folder>\LogOutput.log
+  ErrorLog.log in the game folder or selected BepInEx folder (if present)
+  %TMP%\House House\Big Walk\Crashes (if present)
+The companion records telemetry, not native crash dumps. Unity may produce
+crash reports, but not every crash creates one. Relaunching can rotate logs.
+If logs were redirected, use -UnityLogPath or -CrashPath with the actual folder.

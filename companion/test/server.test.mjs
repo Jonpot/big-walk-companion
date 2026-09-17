@@ -9,10 +9,20 @@ import {fileURLToPath} from 'node:url';
 test('route saves persist, conflicts are rejected, and foreign origins cannot write',async()=>{
   const data=await fs.mkdtemp(path.join(os.tmpdir(),'bigwalk-companion-test-'));
   const root=fileURLToPath(new URL('..',import.meta.url));
-  const child=spawn(process.execPath,['server.mjs'],{cwd:root,env:{...process.env,PORT:'4318',COMPANION_DATA_DIR:data},stdio:['ignore','pipe','pipe']});
+  const telemetry=path.join(data,'manager profile','BepInEx','companion');
+  await fs.mkdir(telemetry,{recursive:true});
+  const sample={timestamp:Date.now(),players:[{id:'fixture',x:1,y:2,z:3}]};
+  await fs.writeFile(path.join(telemetry,'positions.json'),JSON.stringify(sample));
+  await fs.writeFile(path.join(telemetry,'session-abc123.jsonl'),JSON.stringify(sample)+'\n');
+  await fs.writeFile(path.join(telemetry,'map.png'),'fixture-map');
+  const child=spawn(process.execPath,['server.mjs'],{cwd:root,env:{...process.env,PORT:'4318',COMPANION_DATA_DIR:data,BIGWALK_PATH:path.join(data,'unused-game'),COMPANION_TELEMETRY_DIR:telemetry},stdio:['ignore','pipe','pipe']});
   try{
     await Promise.race([once(child.stdout,'data'),once(child,'exit').then(()=>{throw new Error('Test server exited early');}),new Promise((_,reject)=>{const timer=setTimeout(()=>reject(new Error('Startup timed out')),10000);timer.unref();})]);
     const base='http://127.0.0.1:4318';
+    assert.deepEqual((await(await fetch(base+'/api/live')).json()).frame,sample);
+    assert.equal((await(await fetch(base+'/api/recordings')).json())[0].id,'session-abc123.jsonl');
+    assert.deepEqual(await(await fetch(base+'/api/recording?id=session-abc123.jsonl')).json(),[sample]);
+    assert.equal((await(await fetch(base+'/api/map-status')).json()).available,true);
     const state=await(await fetch(base+'/api/state')).json();
     state.pack.areas.push({id:'fixture',name:'Test area',notes:'Line 1\nLine 2',x:.2,y:.2,w:.1,h:.1});
     const options={method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)};

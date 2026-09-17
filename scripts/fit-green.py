@@ -1,0 +1,6 @@
+exec(open('scripts/fit-all-engines.py').read().split('res=[]')[0])
+def fun(v):return distances(w[:,1]@np.array([[v[0],v[1]],[v[1],-v[0]]]).T+v[2:])
+fit=least_squares(fun,[1.93,1.93,*b],diff_step=1e-4,max_nfev=1000,bounds=([1.7,1.7,2500,450],[2.2,2.2,2800,850]))
+v=fit.x;a=np.array([[v[0],v[1]],[v[1],-v[0]]]);b=v[2:];print(v,fun(v).max());print([(float(distances(w[:,i]@a.T+b).mean()),float(distances(w[:,i]@a.T+b).max())) for i in range(3)])
+r=dict(matrix=a.tolist(),offset=b.tolist());(R/'data/alignment/green-fit.json').write_text(json.dumps(r,indent=2))
+im=cv2.imread(str(R/'data/map-candidates/PaperMapSaved-270.png'));p=w[:,1]@a.T+b;cv2.polylines(im,[p.astype(np.int32)],False,(50,255,100),3);p=np.array([[v['players'][0][k] for k in ['x','z']] for v in f])@a.T+b;cv2.polylines(im,[p.astype(np.int32)],False,(255,255,0),4);cv2.imwrite(str(R/'data/alignment/green-closeup.png'),im[1050:1480,1120:1500])

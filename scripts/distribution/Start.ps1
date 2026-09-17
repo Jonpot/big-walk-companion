@@ -1,7 +1,13 @@
+param([string]$GamePath)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GamePath.ps1')
 $packageRoot = Split-Path $PSScriptRoot -Parent
-$env:BIGWALK_PATH = Resolve-BigWalkPath ''
+$env:BIGWALK_PATH = Resolve-BigWalkPath $GamePath
+$bepFolder = Get-SavedBepInExFolder $env:BIGWALK_PATH
+if ($bepFolder) { $bepFolder = Resolve-BepInExFolder $bepFolder }
+else { $bepFolder = Join-Path $env:BIGWALK_PATH 'BepInEx' }
+$env:COMPANION_TELEMETRY_DIR = Join-Path $bepFolder 'companion'
+Write-Host "Reading tracking data from: $env:COMPANION_TELEMETRY_DIR"
 $env:COMPANION_DATA_DIR = Join-Path $packageRoot 'data'
 $env:PORT = '4317'
 $node = Join-Path $packageRoot 'runtime\node.exe'

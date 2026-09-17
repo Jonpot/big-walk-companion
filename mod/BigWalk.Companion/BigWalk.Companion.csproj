@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <GamePath Condition="'$(GamePath)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Big Walk</GamePath>
     <AssemblyName>BigWalk.Companion</AssemblyName>
+    <Version>0.1.1</Version>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="$(GamePath)\BepInEx\core\BepInEx.Core.dll" Private="false" />

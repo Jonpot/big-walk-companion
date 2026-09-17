@@ -4,7 +4,7 @@ See the [project README](../README.md) for installation and features.
 
 Run `npm ci`, `npm run build`, and `npm test` here to rebuild and verify the browser dependencies. Start with `node server.mjs`; the server uses localhost port 4317. `BIGWALK_PATH`, `COMPANION_DATA_DIR`, and `PORT` override local defaults.
 
-The plugin exports `BepInEx/companion/map.png` from the installed game's `PaperMapSaved` texture. The server also accepts a manually extracted `data/map-candidates/PaperMapSaved-270.png`. Calibration is included in `default-route.json` without artwork or user notes.
+Automatic texture export is disabled by default in v0.1.1 because Unity PNG encoding caused a fatal stack overflow in a reported installation. The server still reads existing `BepInEx/companion/map.png` files or a manually extracted `data/map-candidates/PaperMapSaved-270.png`. `COMPANION_TELEMETRY_DIR` selects a managed profile's telemetry directory. Calibration is included in `default-route.json` without artwork or user notes.
 
 Markdown supports embedded PNG/JPEG/WebP/GIF images up to 5 MB and 30 megapixels per image, with a 28 MB encoded-image budget per route pack. HTML is sanitized and remote image loading is disabled. Ctrl+B/Ctrl+I format selected text; Ctrl+S saves. Area bounds are two-dimensional and do not distinguish floors.
 

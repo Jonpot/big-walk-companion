@@ -1,4 +1,6 @@
 @echo off
 cd /d "%~dp0"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Install.ps1" -Launch
+call "%~dp0scripts\Run-PowerShell.cmd" "%~dp0scripts\Install.ps1" -Launch -Interactive %*
+set "companionExit=%errorlevel%"
 pause
+exit /b %companionExit%

@@ -9,4 +9,7 @@ releases/
 
 game-path.txt
 backups/
+diagnostics/
+install-location.json
+install-location.json.tmp
 *.log

@@ -30,3 +30,23 @@ function Resolve-BigWalkPath([string]$Requested) {
     if (!$entered) { throw 'A Big Walk folder is required.' }
     return Resolve-BigWalkPath $entered
 }
+
+function Resolve-BepInExFolder([string]$Requested) {
+    $folder = $Requested.Trim().Trim('"')
+    if (!$folder) { throw 'Choose the mod manager profile folder or its BepInEx folder.' }
+    if (Test-Path -LiteralPath (Join-Path $folder 'BepInEx\core\BepInEx.Unity.IL2CPP.dll') -PathType Leaf) {
+        $folder = Join-Path $folder 'BepInEx'
+    }
+    if (!(Test-Path -LiteralPath (Join-Path $folder 'core\BepInEx.Unity.IL2CPP.dll') -PathType Leaf)) {
+        throw "BepInEx 6 IL2CPP was not found in '$folder'. In your mod manager, open the active profile folder and select its BepInEx folder. Install the IL2CPP x64 BepInEx package in that profile first."
+    }
+    return (Resolve-Path -LiteralPath $folder).Path
+}
+
+function Get-SavedBepInExFolder([string]$Game) {
+    $settings = Join-Path (Split-Path $PSScriptRoot -Parent) 'install-location.json'
+    if (!(Test-Path -LiteralPath $settings)) { return $null }
+    $saved = Get-Content -LiteralPath $settings -Raw | ConvertFrom-Json
+    if ($saved.game -ne $Game) { return $null }
+    return $saved.bepInEx
+}

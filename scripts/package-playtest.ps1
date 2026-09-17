@@ -1,4 +1,4 @@
-param([string]$NodePath = '', [switch]$SkipBuild, [string]$Version='0.1.1')
+param([string]$NodePath = '', [switch]$SkipBuild)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
 if (!$NodePath) { $NodePath = (Get-Command node).Source }
@@ -22,7 +22,7 @@ if ((Get-FileHash -LiteralPath $loaderArchive -Algorithm SHA256).Hash -ne 'F4CC4
 }
 $releaseRoot = Join-Path $projectRoot 'releases'
 New-Item -ItemType Directory -Force -Path $releaseRoot | Out-Null
-$packageName = 'BigWalk-Companion-v' + $Version + '-win-x64'
+$packageName = 'BigWalk-Companion-playtest-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
 $stage = Join-Path $releaseRoot $packageName
 if (Test-Path -LiteralPath $stage) { throw 'A build with this timestamp already exists.' }
 foreach ($folder in @('companion', 'runtime', 'mod', 'installer', 'data\map-candidates', 'scripts', 'licenses')) {
@@ -37,15 +37,15 @@ Copy-Item -LiteralPath $bepLicense -Destination (Join-Path $stage 'licenses\BepI
 if ($LASTEXITCODE -ne 0) { throw 'Browser dependency license collection failed.' }
 Copy-Item -LiteralPath $loaderArchive -Destination (Join-Path $stage "installer\$loaderName")
 Copy-Item -LiteralPath (Join-Path $projectRoot 'mod\BigWalk.Companion\bin\Release\net6.0\BigWalk.Companion.dll') -Destination (Join-Path $stage 'mod')
-Copy-Item -LiteralPath (Join-Path $projectRoot 'companion\default-route.json') -Destination (Join-Path $stage 'companion')
+Copy-Item -LiteralPath (Join-Path $projectRoot 'data\map-candidates\PaperMapSaved-270.png') -Destination (Join-Path $stage 'data\map-candidates')
 foreach ($name in @('Install.cmd', 'Start Companion.cmd', 'Collect Diagnostics.cmd', 'START HERE.txt')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "distribution\$name") -Destination $stage
 }
 foreach ($name in @('GamePath.ps1', 'Loader.ps1', 'Install.ps1', 'Start.ps1', 'Collect-Diagnostics.ps1', 'Run-PowerShell.cmd')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "distribution\$name") -Destination (Join-Path $stage 'scripts')
 }
-$starter = Get-Content -LiteralPath (Join-Path $projectRoot 'companion\default-route.json') -Raw | ConvertFrom-Json
-$cleanPack = @{revision=0; pack=$starter}
+$sourcePack = Get-Content -LiteralPath (Join-Path $projectRoot 'data\route-pack.json') -Raw | ConvertFrom-Json
+$cleanPack = @{revision=0; pack=@{version=1; name='Big Walk'; calibration=$sourcePack.pack.calibration; alignmentMethod=$sourcePack.pack.alignmentMethod; areas=@(); assets=@{}}}
 [IO.File]::WriteAllText((Join-Path $stage 'data\route-pack.json'), ($cleanPack | ConvertTo-Json -Depth 15))
 $manifest = foreach ($file in Get-ChildItem -LiteralPath $stage -Recurse -File) {
     @{path=$file.FullName.Substring($stage.Length + 1).Replace('\','/'); bytes=$file.Length; sha256=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash}

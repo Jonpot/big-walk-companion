@@ -1,4 +1,6 @@
 @echo off
 cd /d "%~dp0"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Start.ps1"
+call "%~dp0scripts\Run-PowerShell.cmd" "%~dp0scripts\Start.ps1" %*
+set "companionExit=%errorlevel%"
 if errorlevel 1 pause
+exit /b %companionExit%

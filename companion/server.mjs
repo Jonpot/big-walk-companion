@@ -7,7 +7,7 @@ const root=path.dirname(fileURLToPath(import.meta.url));
 const assets=path.resolve(root,'../data');
 const data=process.env.COMPANION_DATA_DIR || assets;
 const game=process.env.BIGWALK_PATH || 'C:/Program Files (x86)/Steam/steamapps/common/Big Walk';
-const telemetry=path.join(game,'BepInEx/companion');
+const telemetry=process.env.COMPANION_TELEMETRY_DIR || path.join(game,'BepInEx/companion');
 const port=Number(process.env.PORT||4317);
 const origin=`http://127.0.0.1:${port}`;
 await fs.mkdir(data,{recursive:true});

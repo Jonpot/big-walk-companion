@@ -17,7 +17,7 @@ await fs.copyFile(path.join(root,'data/route-pack.json'),path.join(fixture,'rout
 const port=4320, origin=`http://127.0.0.1:${port}`;
 const server=spawn(path.join(root,'runtime/node.exe'),[path.join(root,'companion/server.mjs')],{
   cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe'],
-  env:{...process.env,PORT:String(port),BIGWALK_PATH:path.join(fixture,'nonexistent-test-game'),COMPANION_DATA_DIR:fixture}
+  env:{...process.env,PORT:String(port),BIGWALK_PATH:path.join(fixture,'nonexistent-test-game'),COMPANION_DATA_DIR:fixture,COMPANION_TELEMETRY_DIR:''}
 });
 let output='';server.stdout.on('data',c=>output+=c);server.stderr.on('data',c=>output+=c);
 try {
