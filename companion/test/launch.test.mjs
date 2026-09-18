@@ -60,3 +60,15 @@ test('an unrelated service is not reused or stopped',async()=>{
     assert.equal(result.code,1);assert.match(result.output,/incompatible app/);
   }finally{await new Promise(resolve=>service.close(resolve));}
 });
+
+test('starting a new package replaces an older matching server and preserves its saved notes',async()=>{
+  const fixture=await fs.mkdtemp(path.join(os.tmpdir(),'bigwalk-upgrade-test-')),telemetry=path.join(fixture,'telemetry');
+  const saved={revision:7,pack:{version:1,name:'Keep my plan',calibration:[],areas:[{id:'a',name:'Existing area',notes:'Keep these notes',x:0,y:0,w:.2,h:.2}]}};
+  await fs.writeFile(path.join(fixture,'route-pack.json'),JSON.stringify(saved));
+  let stopped=0,pid;
+  const previous=http.createServer((req,res)=>{res.setHeader('Content-Type','application/json');if(req.url==='/api/shutdown'){stopped++;res.end('{}');previous.close();previous.closeIdleConnections();}else res.end(JSON.stringify({app:'big-walk-companion',launchProtocol:1,dataDirectory:fixture,telemetryDirectory:telemetry}));});
+  previous.listen(0,'127.0.0.1');await once(previous,'listening');const port=previous.address().port,origin=`http://127.0.0.1:${port}`;
+  const env={...process.env,PORT:String(port),COMPANION_DATA_DIR:fixture,COMPANION_TELEMETRY_DIR:telemetry,COMPANION_OPEN_BROWSER:'0'};
+  try{const result=await run(env);assert.equal(result.code,0,result.output);const health=await(await fetch(origin+'/api/health')).json();pid=health.pid;assert.equal(stopped,1);assert.equal(health.appVersion,'0.2.0');const state=await(await fetch(origin+'/api/state')).json();assert.equal(state.revision,7);assert.equal(state.pack.version,2);assert.deepEqual(state.pack.areas,saved.pack.areas);assert.deepEqual(JSON.parse(await fs.readFile(path.join(fixture,'route-pack.json'),'utf8')),saved);}
+  finally{if(pid)await run(env,['--stop']);previous.close();previous.closeAllConnections();}
+});

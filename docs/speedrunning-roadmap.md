@@ -4,11 +4,17 @@ Reviewed September 16, 2026. This is a proposed product roadmap, not a record of
 
 The product goal: a route planner can capture and explain a strategy, share it with a teammate, and let that teammate execute and improve it without repeatedly leaving the game.
 
-## What exists today
+## Delivery status — September 17, v0.2.0
+
+Implemented: POI placement/editing with categories, color and notes; click-to-place routes with draggable/insertable/removable vertices; ordered POI-linked steps; POI/route search and layers; complete merge-or-replace pack sharing; Plan/Run modes; next-objective card and checklist; manual persistent timer; draft undo/redo/recovery; connection status. See README for actual controls and scope.
+
+Still future work: freehand paths, elevation, branches, route version libraries, online sharing/live collaboration, automatic splits, ghosts, replay redesign and segment analysis. The numbered items below describe the original broader targets; they are not a claim that every acceptance criterion has shipped.
+
+## Original baseline before v0.2.0
 
 The app already provides live players and trains, fading trails, recording playback, rectangular areas, rich Markdown notes with images, editable bounds, player aliases, and JSON import/export. Build on these rather than replace them.
 
-The current route format contains areas, notes, images, and calibration, but no POIs, route paths, or ordered objectives. Import replaces the active pack. The server listens only on localhost; export/import is file sharing, not live team synchronization. Full-window notes are the default on area entry. Replay reads an entire recording into memory, rejects files above 100 MB, and rebuilds trail history from the beginning on seek. Player-landmark map accuracy remains unverified in the calibration documentation.
+The original route format contained areas, notes, images, and calibration, but no POIs, route paths, or ordered objectives. Import replaces the active pack. The server listens only on localhost; export/import is file sharing, not live team synchronization. Full-window notes are the default on area entry. Replay reads an entire recording into memory, rejects files above 100 MB, and rebuilds trail history from the beginning on seek. Player-landmark map accuracy remains unverified in the calibration documentation.
 
 ## Plan and share
 

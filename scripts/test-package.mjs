@@ -42,15 +42,19 @@ try {
   assert.equal(mapBytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
   assert.equal(mapBytes.readUInt32BE(16),4096);
   assert.equal(mapBytes.readUInt32BE(20),4096);
-  for(const asset of ['/','/map.png','/app.mjs','/core.mjs','/styles.css','/notes.mjs','/markdown.mjs','/vendor.mjs']) {
+  for(const asset of ['/','/map.png','/app.mjs','/core.mjs','/planner.mjs','/minimap.mjs','/icons.mjs','/lucide-catalog.mjs','/planning-data.mjs','/styles.css','/notes.mjs','/markdown.mjs','/vendor.mjs']) {
     const response=await fetch(origin+asset);assert.equal(response.status,200,asset);
     assert.ok((await response.arrayBuffer()).byteLength>0,asset);
   }
+  assert.deepEqual(state.pack.pois,[]);assert.deepEqual(state.pack.routes,[]);
+  state.pack.pois=[{id:'test-poi',icon:'train-front',name:'Station',notes:'Meet',category:'transport',color:'#ffd458',u:.4,v:.5}];
+  state.pack.routes=[{id:'test-route',name:'Route',notes:'Run',color:'#c5f785',points:[{u:.1,v:.1},{u:.4,v:.5}],steps:[{id:'test-step',name:'Meet',notes:'Both players',poiId:'test-poi'}]}];
   state.pack.assets={pixel:{name:'test.png',data:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1cAAAAASUVORK5CYII='}};
   const saved=await fetch(origin+'/api/state',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});
   assert.equal(saved.status,200);
   const onDisk=JSON.parse(await fs.readFile(path.join(fixture,'route-pack.json'),'utf8'));
   assert.deepEqual(onDisk.pack.assets,state.pack.assets);
   assert.equal(onDisk.revision,1);
+  assert.deepEqual(onDisk.pack.pois,state.pack.pois);assert.deepEqual(onDisk.pack.routes,state.pack.routes);
   console.log(`PASS: ${manifest.files.length} manifest hashes, bundled Node startup, 4096px map without game/save, empty calibrated starter, all UI assets, no recordings, image asset persistence in isolated fixture.`);
 } finally { server.kill(); }

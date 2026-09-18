@@ -1,3 +1,5 @@
+import {renderNotesMinimap} from './minimap.mjs';
+import {createPlanner} from './planner.mjs';
 import {createNotesUI} from './notes.mjs';
 import {affine,activeAreas,validatePack,trainMarkers,fadedTrailPaths,transformAreaBounds} from './core.mjs';
 const $=id=>document.getElementById(id), NS='http://www.w3.org/2000/svg';
@@ -5,7 +7,7 @@ let state,projection=null,frame=null,frames=[],replay=false,index=0,playing=fals
 let view={x:0,y:0,w:1000,h:1000},mode='pan',pointer=null,edit=null,anchorWorld=null,previousAreas=new Set();
 let trainTrails=new Map(),notesKey='',trails=new Map(),lastSequence='',lastRun='',saving=false,liveAge=Infinity;
 let mapReady=false,nextMapCheck=0;
-let boundsEdit=null,boundsOriginal=null,boundsSaving=false;
+let boundsEdit=null,boundsOriginal=null,boundsSaving=false,planner=null;
 const palette=['#8be7ff','#ec9aff','#ffffff','#ffac6b'];
 async function api(url,options){const res=await fetch(url,options);const result=await res.json();if(!res.ok)throw new Error(result.error||'Request failed');return result;}
 function message(text){$('message').textContent=text;$('message').hidden=!text;}
@@ -26,15 +28,15 @@ function updateProjection(){try{projection=affine(state.pack.calibration);}catch
 async function savePack(pack){
   if(saving){message('Please wait for the current save.');return false;}
   saving=true;
-  try{state=await api('/api/state',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision:state.revision,pack:validatePack(pack)})});message('');updateProjection();renderAreaList();return true;}
+  try{state=await api('/api/state',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision:state.revision,pack:validatePack(pack)})});message('');updateProjection();renderAreaList();planner?.renderList();return true;}
   catch(e){message(e.message);return false;}finally{saving=false;}
 }
 function renderAreaList(){
   $('areaList').replaceChildren();$('areaCount').textContent=state.pack.areas.length;$('areaEmpty').hidden=state.pack.areas.length>0;
   for(const a of state.pack.areas){const row=textNode('div','',$('areaList'));row.className='areaRow';const b=textNode('button',a.name,row);b.className='areaButton';b.onclick=()=>openEditor({...a});const resize=textNode('button','↔',row);resize.className='boundsButton';resize.title=`Move or resize ${a.name}`;resize.setAttribute('aria-label',`Move or resize ${a.name}`);resize.onclick=()=>beginBounds(a);}
 }
-const notesUI=createNotesUI({getPack:()=>state.pack,savePack,isMapEditing:()=>!!boundsEdit,onClose:()=>{edit=null;$('draft').replaceChildren();renderOverlay();}});
-function openEditor(area){if(!leaveBounds())return;if(notesUI.open(area)){edit=area;renderOverlay();}}
+const notesUI=createNotesUI({getPack:()=>state.pack,savePack,isMapEditing:()=>!!boundsEdit||!!planner?.isEditing(),onClose:()=>{edit=null;$('draft').replaceChildren();renderOverlay();}});
+function openEditor(area){if(!planner?.leave()||!leaveBounds())return;if(notesUI.open(area)){edit=area;renderOverlay();}}
 function closeEditor(){return notesUI.close();}
 function renderPlayers(){
   const old=$('player').value, people=frame?.players||[];
@@ -92,7 +94,7 @@ function renderOverlay(){
       }
     }
   }
-  renderNotes();
+  planner?.renderMap(scale);renderNotes();renderNotesMinimap({svg,pack:state.pack,projection,player:selected(),players:frame?.players||[],trains:trainMarkers(frame),activeArea:state.pack.areas.find(a=>previousAreas.has(a.id)),available:replay||liveAge<3000,replay,label:selected()?label(selected()):'',mapReady,mapHref:$('mapImage').getAttribute('href')});
 }
 function addTrail(f){
   const append=(points,p)=>{if(points.at(-1)?.timestamp===f.timestamp)return;points.push({x:p.x,y:p.y,z:p.z,timestamp:f.timestamp});if(points.length>10000)points.shift();};
@@ -103,18 +105,18 @@ function showFrame(f){frame=f;renderPlayers();renderOverlay();}
 function setReplayIndex(value){index=Math.max(0,Math.min(frames.length-1,value));trails=new Map();trainTrails=new Map();for(let i=0;i<=index;i++)addTrail(frames[i]);$('timeline').value=index;showFrame(frames[index]);const seconds=(frames[index].timestamp-frames[0].timestamp)/1000;$('time').textContent=`${seconds.toFixed(1)}s`;}
 async function poll(){
   if(!mapReady&&Date.now()>nextMapCheck){nextMapCheck=Date.now()+5000;try{const status=await api('/api/map-status');if(status.available){mapReady=true;$('mapImage').setAttribute('href',`/map.png?t=${Date.now()}`);renderOverlay();}}catch{}}
-  try{if(!replay){const live=await api('/api/live');liveAge=live.ageMs??Infinity;
+  try{if(!replay){const live=await api('/api/live');liveAge=live.ageMs??Infinity;$('connection').textContent=liveAge<3000?'Game connected':live.frame?'Game feed paused':'Waiting for game';
       
       if(live.frame){const key=`${live.frame.runId}:${live.frame.sequence}`;if(live.frame.runId!==lastRun){trails=new Map();trainTrails=new Map();previousAreas.clear();lastRun=live.frame.runId;}if(key!==lastSequence){lastSequence=key;addTrail(live.frame);}showFrame(live.frame);}else showFrame(null);
     }
-  }catch(e){liveAge=Infinity;renderOverlay();}
+  }catch(e){liveAge=Infinity;$('connection').textContent='Companion disconnected';renderOverlay();}
   setTimeout(poll,300);
 }
 async function loadRecordings(){const value=$('recordings').value;const items=await api('/api/recordings');$('recordings').replaceChildren();const live=textNode('option','Live session',$('recordings'));live.value='live';for(const item of items){const o=textNode('option',new Date(item.modified).toLocaleString(),$('recordings'));o.value=item.id;}if([...$('recordings').options].some(o=>o.value===value))$('recordings').value=value;}
 $('recordings').onchange=async()=>{
   playing=false;$('play').textContent='Play';previousAreas.clear();trails=new Map();trainTrails=new Map();
   if($('recordings').value==='live'){replay=false;$('timeline').disabled=true;$('play').disabled=true;$('time').textContent='Live';lastSequence='';return;}
-  replay=true;
+  replay=true;$('connection').textContent='Recording playback';
   try{frames=await api(`/api/recording?id=${encodeURIComponent($('recordings').value)}`);if(!frames.length)throw new Error('This recording has no player movement.');$('timeline').max=frames.length-1;$('timeline').disabled=false;$('play').disabled=false;message('');setReplayIndex(0);}
   catch(e){frames=[];$('timeline').disabled=true;$('play').disabled=true;showFrame(null);message(e.message);}
 };
@@ -147,18 +149,28 @@ $('map').onpointerup=e=>{if(!pointer||pointer.id!==e.pointerId)return;if(pointer
   const x=clamp(Math.min(p.x,start.x)/1000),y=clamp(Math.min(p.y,start.y)/1000),w=clamp(Math.max(p.x,start.x)/1000)-x,h=clamp(Math.max(p.y,start.y)/1000)-y;
   if(w>.002&&h>.002)openEditor({id:crypto.randomUUID(),name:'',notes:'',x,y,w,h});else $('draft').replaceChildren();setMode('pan');}};
 $('map').onpointercancel=()=>{if(pointer?.handle)boundsEdit=pointer.original;pointer=null;renderOverlay();$('draft').replaceChildren();};
-$('draw').onclick=()=>{if(!leaveBounds())return;if(notesUI.isOpen()&&!closeEditor())return;setMode(mode==='draw'?'pan':'draw');};
+$('draw').onclick=()=>{if(!planner.leave()||!leaveBounds())return;if(notesUI.isOpen()&&!closeEditor())return;setMode(mode==='draw'?'pan':'draw');};
 $('align').onclick=()=>{$('alignment').hidden=!$('alignment').hidden;$('align').classList.toggle('active',!$('alignment').hidden);if($('alignment').hidden)setMode('pan');renderOverlay();};
 $('usePlayer').onclick=()=>{const p=selected();if(!p||(!replay&&liveAge>3000)){message('Choose an active player or a frame in a recording.');return;}$('worldX').value=p.x;$('worldZ').value=p.z;};
-$('captureAnchor').onclick=()=>{if(state.pack.calibration.length>=3){message('Three landmarks are already saved. Reset alignment to replace them.');return;}if(!$('worldX').value||!$('worldZ').value){message('Enter both world coordinates first.');return;}anchorWorld={x:Number($('worldX').value),z:Number($('worldZ').value)};if(!Number.isFinite(anchorWorld.x)||!Number.isFinite(anchorWorld.z))return;message('');notesUI.minimize();$('settingsDialog').close();setMode('anchor');};
+$('captureAnchor').onclick=()=>{if(!planner.leave())return;if(state.pack.calibration.length>=3){message('Three landmarks are already saved. Reset alignment to replace them.');return;}if(!$('worldX').value||!$('worldZ').value){message('Enter both world coordinates first.');return;}anchorWorld={x:Number($('worldX').value),z:Number($('worldZ').value)};if(!Number.isFinite(anchorWorld.x)||!Number.isFinite(anchorWorld.z))return;message('');notesUI.minimize();$('settingsDialog').close();setMode('anchor');};
 $('resetAlignment').onclick=()=>{if(confirm('Reset the three map alignment landmarks?')){const pack=structuredClone(state.pack);pack.calibration=[];pack.alignmentMethod='manual';savePack(pack);setMode('pan');}};
 $('player').onchange=()=>{previousAreas.clear();renderOverlay();};$('showTrails').onchange=renderOverlay;$('showTrainTrails').onchange=renderOverlay;
-$('export').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state.pack,null,2)],{type:'application/json'}));a.download='big-walk-route.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
+$('export').onclick=()=>{if(planner.isEditing()||boundsEdit){message('Save or cancel your map edits before exporting.');return;}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state.pack,null,2)],{type:'application/json'}));a.download='big-walk-route.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
 $('import').onclick=()=>{if(leaveBounds())$('importFile').click();};
-$('importFile').onchange=async()=>{const file=$('importFile').files[0];if(!file)return;try{if(file.size>32_000_000)throw new Error('Route pack is too large.');const pack=validatePack(JSON.parse(await file.text()));if(confirm('Replace this route’s areas, notes, and alignment with the imported pack?')){if(await savePack(pack))closeEditor();}}catch(e){message(e.message);}finally{$('importFile').value='';}};
+$('importFile').onchange=async()=>{const file=$('importFile').files[0];if(!file)return;try{if(file.size>32_000_000)throw new Error('Route pack is too large.');const pack=validatePack(JSON.parse(await file.text()));planner.offerImport(pack);}catch(e){message(e.message);}finally{$('importFile').value='';}};
 new ResizeObserver(()=>renderOverlay()).observe($('mapWrap'));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!notesUI.isOpen()&&!$('areaPopup').open){if(boundsEdit){e.preventDefault();if(!boundsSaving)endBounds();return;}setMode('pan');pointer=null;$('draft').replaceChildren();}});
-try{state=await api('/api/state');updateProjection();renderAreaList();await loadRecordings();poll();}catch(e){message(`Could not load companion: ${e.message}`);}
+planner=createPlanner({getPack:()=>state?.pack,savePack,message,mapPoint,redraw:renderOverlay,
+  prepare:()=>{if(!leaveBounds()||(notesUI.isOpen()&&!closeEditor()))return false;notesUI.minimize();setMode('pan');return true;},
+  focusMap:points=>{
+    const xs=points.map(p=>p.u*1000),ys=points.map(p=>p.v*1000),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+    const rect=$('map').getBoundingClientRect(),panel=document.querySelector('aside').getBoundingClientRect(),unitPixels=Math.min(rect.width,rect.height);
+    const available=panel.top<rect.bottom?Math.max(200,panel.left-rect.left-24):rect.width;
+    const size=Math.max(140,(maxX-minX)*unitPixels/available*1.3,(maxY-minY)*unitPixels/Math.max(200,rect.height-210)*1.3);
+    view={x:(minX+maxX-size)/2+(rect.width-available)*size/(2*unitPixels),y:(minY+maxY-size)/2,w:size,h:size};applyView();
+  }
+});
+try{state=await api('/api/state');state.pack=validatePack(state.pack);updateProjection();renderAreaList();planner.ready();await loadRecordings();poll();}catch(e){message(`Could not load companion: ${e.message}`);}
 $('findPlayer').onclick=()=>{const p=selected();if(!projection||!p||(!replay&&liveAge>=3000)){message('Choose a recording or connect a live player first.');return;}const pos=projection(p);view.x=pos.u*1000-view.w/2;view.y=pos.v*1000-view.h/2;applyView();};
 
 $('settingsButton').onclick=()=>{if($('areaPopup').open)$('areaPopup').close();$('settingsDialog').showModal();renderOverlay();};
@@ -187,7 +199,7 @@ $('renameDialog').addEventListener('close',()=>{renameTarget=null;notesUI.syncPo
 function boundsDirty(){return boundsEdit&&['x','y','w','h'].some(k=>boundsEdit[k]!==boundsOriginal[k]);}
 function endBounds(){boundsEdit=null;boundsOriginal=null;pointer=null;$('boundsBar').hidden=true;setMode('pan');renderOverlay();}
 function leaveBounds(){if(boundsSaving)return false;if(boundsDirty()&&!confirm('Discard unsaved area bounds?'))return false;if(boundsEdit)endBounds();return true;}
-function beginBounds(area){if(boundsEdit?.id===area.id||!leaveBounds())return;if(notesUI.isOpen()&&!closeEditor())return;boundsEdit={...area};boundsOriginal={...area};notesUI.minimize();setMode('pan');$('boundsName').textContent=area.name;$('boundsBar').hidden=false;const size=Math.max(100,Math.min(1000,Math.max(area.w,area.h)*2800));view={x:(area.x+area.w/2)*1000-size/2,y:(area.y+area.h/2)*1000-size/2,w:size,h:size};applyView();}
+function beginBounds(area){if(!planner.leave())return;if(boundsEdit?.id===area.id||!leaveBounds())return;if(notesUI.isOpen()&&!closeEditor())return;boundsEdit={...area};boundsOriginal={...area};notesUI.minimize();setMode('pan');$('boundsName').textContent=area.name;$('boundsBar').hidden=false;const size=Math.max(100,Math.min(1000,Math.max(area.w,area.h)*2800));view={x:(area.x+area.w/2)*1000-size/2,y:(area.y+area.h/2)*1000-size/2,w:size,h:size};applyView();}
 $('cancelBounds').onclick=()=>{if(!boundsSaving)endBounds();};
 $('saveBounds').onclick=async()=>{if(!boundsEdit||boundsSaving)return;boundsSaving=true;$('saveBounds').disabled=true;$('cancelBounds').disabled=true;const pack=structuredClone(state.pack),area=pack.areas.find(a=>a.id===boundsEdit.id);if(area)for(const k of ['x','y','w','h'])area[k]=boundsEdit[k];try{if(area&&await savePack(pack))endBounds();}finally{boundsSaving=false;$('saveBounds').disabled=false;$('cancelBounds').disabled=false;}};
 window.addEventListener('beforeunload',e=>{if(boundsDirty()){e.preventDefault();e.returnValue='';}});

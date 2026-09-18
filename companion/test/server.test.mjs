@@ -25,6 +25,8 @@ test('route saves persist, conflicts are rejected, and foreign origins cannot wr
     assert.equal((await(await fetch(base+'/api/map-status')).json()).available,true);
     const state=await(await fetch(base+'/api/state')).json();
     state.pack.areas.push({id:'fixture',name:'Test area',notes:'Line 1\nLine 2',x:.2,y:.2,w:.1,h:.1});
+    state.pack.pois.push({id:'poi',icon:'train-front',name:'Station',notes:'Meet here',category:'transport',color:'#c5f785',u:.3,v:.4});
+    state.pack.routes.push({id:'route',name:'Sprint',notes:'Two players',color:'#ffd458',points:[{u:.1,v:.2},{u:.3,v:.4}],steps:[{id:'step',name:'Meet up',notes:'Both runners',poiId:'poi'}]});
     const options={method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)};
     assert.equal((await fetch(base+'/api/state',options)).status,200);
     assert.equal((await fetch(base+'/api/state',options)).status,409);
@@ -33,6 +35,12 @@ test('route saves persist, conflicts are rejected, and foreign origins cannot wr
     const saved=JSON.parse(await fs.readFile(path.join(data,'route-pack.json'),'utf8'));
     assert.equal(saved.pack.areas[0].notes,'Line 1\nLine 2');
     assert.equal(saved.revision,1);
+    assert.deepEqual(saved.pack.pois,state.pack.pois);assert.deepEqual(saved.pack.routes,state.pack.routes);
+    assert.equal((await fetch(base+'/planner.mjs')).status,200);
+    assert.equal((await fetch(base+'/planning-data.mjs')).status,200);
+    const updated=await fetch(base+'/api/state',{...options,body:JSON.stringify({...saved,pack:{...saved.pack,name:'Changed'}})});
+    assert.equal(updated.status,200);
+    assert.deepEqual(JSON.parse(await fs.readFile(path.join(data,'route-pack.previous.json'),'utf8')),saved);
     const invalid={...saved,pack:{...saved.pack,calibration:[{x:0,z:0,u:2,v:0}]}};
     assert.equal((await fetch(base+'/api/state',{...options,body:JSON.stringify(invalid)})).status,400);
   }finally{const exited=once(child,'exit');child.kill();await exited;}

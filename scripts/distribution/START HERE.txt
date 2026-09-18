@@ -1,4 +1,4 @@
-BIG WALK COMPANION v0.1.3 - WINDOWS
+BIG WALK COMPANION v0.2.0 - WINDOWS
 
 1. Extract the entire ZIP into a writable folder. Do not run inside the ZIP.
 2. Close Big Walk and double-click Install.cmd.
@@ -27,6 +27,29 @@ To disable automatic startup, close the game and set AutoStart = false under
 [Companion] in BepInEx/config/com.jonpot.bigwalk.companion.cfg.
 No Node.js or .NET SDK installation is needed.
 Launchers prefer PowerShell 7 (pwsh.exe) and fall back to Windows PowerShell.
+
+Full-screen notes include a zoomed-in minimap in the bottom-left corner,
+following the selected player with nearby POIs, routes, players and trains.
+
+PLANNING AND SHARING
+The Route planner panel is on the right. + POI places a named, categorized,
+colored pin with notes. Change icon opens a searchable grid of all 1,848
+bundled Lucide icons (works offline). Draw route lets you click out a path; Finish path
+opens its name, color, notes and ordered steps. Link steps to POIs to show
+their numbered markers. Save plan commits your work.
+To edit, click a saved pin/path or its list entry. Adjust path lets you drag
+vertices, click segments to insert, click the map to extend, and right-click
+vertices to remove. Undo/redo and browser-local draft recovery are included.
+Search and category filters help find POIs; layer toggles hide POIs/routes.
+Export pack shares all saved pins, paths, steps, notes, images and alignment.
+Import pack offers Add (independent copies, keeps your alignment) or Replace.
+New packs require v0.2.0 or newer; old area-only packs can still be imported.
+Run mode shows your next step, checklist and a manual start/pause/reset timer.
+The checklist and timer stay in your browser and are not included in exports.
+The previous saved pack is kept in data/route-pack.previous.json.
+This release retains the working v0.1.3 game plugin; the planner is part of
+companion v0.2.0. Starting this package updates the matching background server.
+Refresh already-open companion pages after starting the new package.
 
 MOD MANAGERS
 Install the BepInEx 6 IL2CPP x64 package in the selected profile first. The

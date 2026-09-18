@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "name": "Big Walk",
   "calibration": [
     {
@@ -23,5 +23,7 @@
   ],
   "alignmentMethod": "train-track-fit",
   "areas": [],
-  "assets": {}
+  "assets": {},
+  "pois": [],
+  "routes": []
 }

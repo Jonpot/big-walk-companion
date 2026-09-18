@@ -1,6 +1,7 @@
-export const blankPack = () => ({version:1, name:'Our island route', calibration:[], areas:[]});
+import {validatePlanning} from './planning-data.mjs';
+export const blankPack = () => ({version:2, name:'Our island route', calibration:[], areas:[],pois:[],routes:[]});
 export function validatePack(pack) {
-  if (!pack || pack.version !== 1 || typeof pack.name !== 'string' || pack.name.length > 150 ||
+  if (!pack || ![1,2].includes(pack.version) || typeof pack.name !== 'string' || pack.name.length > 150 ||
       !Array.isArray(pack.areas) || pack.areas.length > 500 || !Array.isArray(pack.calibration) || pack.calibration.length > 3)
     throw new Error('This is not a supported route pack.');
   const finite = n => typeof n === 'number' && Number.isFinite(n);
@@ -17,7 +18,7 @@ export function validatePack(pack) {
   if(pack.calibration.length===3) affine(pack.calibration);
   if(pack.alignmentMethod !== undefined && !['manual','train-track-fit'].includes(pack.alignmentMethod)) throw new Error('Unknown alignment method.');
   const assets=validateAssets(pack.assets || {});
-  return {version:1,assets,name:pack.name,calibration:pack.calibration.map(p=>({x:p.x,z:p.z,u:p.u,v:p.v})),
+  return {version:2,...validatePlanning(pack),assets,name:pack.name,calibration:pack.calibration.map(p=>({x:p.x,z:p.z,u:p.u,v:p.v})),
     alignmentMethod:pack.alignmentMethod || 'manual',
     areas:pack.areas.map(a=>({id:a.id,name:a.name,notes:a.notes,x:a.x,y:a.y,w:a.w,h:a.h}))};
 }

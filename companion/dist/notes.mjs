@@ -38,7 +38,7 @@ export function createNotesUI({getPack,savePack,onClose,isMapEditing=()=>false})
     $('editor').showModal();renderPreview();editor.requestMeasure();$('areaName').focus();return true;
   }
   async function save(){if(!area||uploads)return;error('');const pack=structuredClone(getPack()),updated={...area,name:$('areaName').value.trim(),notes:source()};if(!updated.name){error('Enter an area name.');$('areaName').focus();return;}const i=pack.areas.findIndex(a=>a.id===area.id);if(i<0)pack.areas.push(updated);else pack.areas[i]=updated;
-    const used=new Set(pack.areas.flatMap(a=>[...a.notes.matchAll(/asset:([a-zA-Z0-9-]+)/g)].map(m=>m[1])));pack.assets=Object.fromEntries(Object.entries(assets).filter(([id])=>used.has(id)));
+    const used=new Set([...pack.areas,...(pack.pois||[]),...(pack.routes||[]),...(pack.routes||[]).flatMap(r=>r.steps)].flatMap(a=>[...a.notes.matchAll(/asset:([a-zA-Z0-9-]+)/g)].map(m=>m[1])));pack.assets=Object.fromEntries(Object.entries(assets).filter(([id])=>used.has(id)));
     $('saveArea').disabled=true;try{if(await savePack(pack))close(true);else error('Could not save. Your edits are still open.');}catch(e){error(e.message);}finally{$('saveArea').disabled=false;}}
   async function addImages(files){const current=generation;uploads++;$('saveArea').disabled=true;try{
     for(const file of files){if(!/^image\/(png|jpeg|webp|gif)$/.test(file.type))throw new Error('Choose a PNG, JPEG, WebP, or GIF image.');if(file.size>5_000_000)throw new Error('Each image must be smaller than 5 MB.');

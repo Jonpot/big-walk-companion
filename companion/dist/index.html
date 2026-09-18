@@ -1,9 +1,38 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Big Walk Companion</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"></head><body>
-<header><div class="brand"><div><strong>BIG WALK</strong></div></div><button id="settingsButton" aria-label="Settings" title="Settings">⚙</button><button id="export">Export route</button><button id="import">Import route</button><input id="importFile" type="file" accept="application/json,.json" hidden></header>
+<header><div class="brand"><div><strong>BIG WALK</strong><small>Plan together. Run your route.</small></div></div><span id="connection" role="status">Waiting for game</span><button id="settingsButton" aria-label="Settings" title="Settings">⚙</button><button id="export">Export pack</button><button id="import">Import pack</button><input id="importFile" type="file" accept="application/json,.json" hidden></header>
 <main><section class="workspace" aria-label="Island map"><div class="toolbar glass"><button id="fit">Fit map</button><button id="findPlayer">Find player</button><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><span class="divider"></span><button id="draw">Draw area</button><span id="modeLabel"></span></div>
-<div id="boundsBar" class="bounds-bar glass" hidden><span id="boundsName"></span><button id="saveBounds" class="primary">Save bounds</button><button id="cancelBounds">Cancel</button></div><div id="mapWrap"><svg id="map" viewBox="0 0 1000 1000" aria-label="Big Walk map with players, trails, trains, and puzzle areas"><image id="mapImage" width="1000" height="1000"/><g id="areas"></g><g id="trails"></g><g id="markerLabels"></g><g id="markers"></g><g id="draft"></g><g id="anchors"></g><g id="boundsControls"></g></svg><div id="mapNotice">Map alignment needed to place players and trains.</div></div>
+<div id="boundsBar" class="bounds-bar glass" hidden><span id="boundsName"></span><button id="saveBounds" class="primary">Save bounds</button><button id="cancelBounds">Cancel</button></div><div id="mapWrap"><svg id="map" viewBox="0 0 1000 1000" aria-label="Big Walk map with POIs, routes, players, trains, and puzzle areas"><image id="mapImage" width="1000" height="1000"/><g id="areas"></g><g id="trails"></g><g id="planningMap"></g><g id="markerLabels"></g><g id="markers"></g><g id="draft"></g><g id="anchors"></g><g id="boundsControls"></g></svg><div id="mapNotice">Map alignment needed to place players and trains.</div></div>
 <footer class="glass"><select id="recordings" aria-label="Session"><option value="live">Live session</option></select><button id="refreshRecordings" aria-label="Refresh recordings">Refresh</button><button id="play" disabled>Play</button><input id="timeline" aria-label="Replay position" type="range" min="0" max="0" value="0" disabled><span id="time">Live</span></footer></section>
-<aside class="glass"><section><div class="sectionTitle"><h1>Players</h1></div><label for="player">Notes follow</label><div class="player-picker"><select id="player"><option value="">Your player</option></select><button id="renamePlayer" title="Rename selected player">Rename</button></div><div id="playerList" class="players"></div></section>
+<aside class="glass">
+<section id="planner">
+<div class="sectionTitle"><h1>Route planner</h1><select id="plannerMode" aria-label="Companion mode"><option value="plan">Plan</option><option value="run">Run</option></select></div>
+<div id="draftRecovery" class="planner-callout" hidden>Unsaved plan recovered.<div class="buttons"><button id="restorePlan">Restore draft</button><button id="discardPlan">Discard</button></div></div>
+<div id="planTools"><div class="buttons"><button id="addPoi" class="primary">+ POI</button><button id="addRoute">Draw route</button></div><p class="muted">Pin a place or click out a path. Everything saves in your shared route pack.</p></div>
+<div id="plannerHint" class="planner-callout" role="status" hidden></div>
+<div id="pathActions" class="buttons" hidden><button id="finishPath" class="primary">Finish path</button><button id="undoPoint">Undo point</button><button id="cancelDrawing">Cancel</button></div>
+<div id="planEditor" hidden>
+<div class="sectionTitle"><h2 id="planEditorTitle">Edit plan</h2><button id="cancelPath" title="Discard draft">×</button></div>
+<label>Name<input id="planName" maxlength="150" required></label>
+<div class="pair"><label>Color<input id="planColor" type="color" value="#c5f785"></label><label id="poiFields">Category<select id="poiCategory"></select></label></div>
+<div id="poiIconFields"><label>POI icon</label><button id="choosePoiIcon" type="button"><span id="poiIconPreview"></span><span id="poiIconName">map-pin</span><span>Change icon…</span></button></div>
+<label>Notes<textarea id="planNotes" maxlength="200000" rows="4" placeholder="Landmarks, tricks, timing, or recovery instructions"></textarea></label>
+<div class="buttons"><button id="adjustPath">Adjust path on map</button><button id="undoPlan" title="Undo plan edit">Undo</button><button id="redoPlan" title="Redo plan edit">Redo</button></div>
+<div id="routeFields"><h3>Ordered steps</h3><div id="stepList"></div><label>Link a POI (optional)<select id="stepPoi"></select></label><button id="addStep">Add step</button></div>
+<div class="buttons save-plan"><button id="savePlan" class="primary">Save plan</button><button id="cancelPlan">Cancel</button><button id="deletePlan" class="danger">Delete</button></div>
+</div>
+<div id="planningLibrary">
+<label class="search-label">Find in plan<input id="planSearch" type="search" placeholder="Search names, notes, categories"></label>
+<div class="buttons layer-toggles"><label class="check"><input id="layerPois" type="checkbox" checked>POIs</label><label class="check"><input id="layerRoutes" type="checkbox" checked>Routes</label></div>
+<label>POI category<select id="filterCategory"><option value="">All categories</option></select></label>
+<div class="sectionTitle"><h2>Points of interest</h2><span id="poiCount">0</span></div><div id="poiList"></div>
+<div class="sectionTitle"><h2>Routes</h2><span id="routeCount">0</span></div><div id="routeList"></div>
+</div>
+<div id="runPanel" hidden><label>Route<select id="routePicker"></select></label><p id="runEmpty" class="muted">Draw a route in Plan mode to start an attempt.</p>
+<div id="runDetails"><p id="routeStats" class="muted"></p><p id="routeNotes"></p><div class="next-objective"><strong id="nextObjective"></strong><p id="objectiveNotes"></p><button id="locateNext">Locate next POI</button></div></div>
+<div id="runControls"><output id="runTimer" aria-label="Attempt timer">00:00</output><div class="buttons"><button id="startRun">Start timer</button><button id="resetRun">Reset attempt</button></div><p class="muted">Manual real-time timer. Checklist and timer stay in this browser; they aren’t shared.</p></div><div id="runSteps"></div>
+</div>
+</section>
+<section><div class="sectionTitle"><h1>Players</h1></div><label for="player">Notes follow</label><div class="player-picker"><select id="player"><option value="">Your player</option></select><button id="renamePlayer" title="Rename selected player">Rename</button></div><div id="playerList" class="players"></div></section>
 
 <section id="autoNotes"><div class="sectionTitle"><h2>Notes</h2></div><div id="notes"></div></section>
 <section><div class="sectionTitle"><h2>Areas</h2><span id="areaCount">0</span></div><div id="areaList"></div><p id="areaEmpty" class="muted"></p></section>
@@ -17,8 +46,10 @@
 <div id="imageFormatting" class="image-formatting" hidden><label>Image description<input id="imageAlt" maxlength="200"></label><label>Width<select id="imageWidth"><option>25</option><option>50</option><option>75</option><option selected>100</option></select></label><label>Align<select id="imageAlign"><option>left</option><option selected>center</option><option>right</option></select></label><button id="applyImageFormat">Apply</button><button id="removeImage" class="danger">Remove image</button></div>
 <div id="editorPanes" class="editor-panes"><div id="markdownEditor" aria-label="Markdown editor"></div><div id="notePreview" class="markdown-body" aria-label="Note preview"></div></div><p id="editorError" role="alert" hidden></p>
 </dialog>
-<dialog id="areaPopup" class="area-popup" aria-label="Area notes"><div class="dialog-heading"><h2 id="popupTitle">Notes</h2><button id="minimizeNotes" aria-label="Minimize notes">−</button></div><div id="popupTabs" class="popup-tabs"></div><div id="popupContent" class="markdown-body"></div><button id="editPopupArea">Edit notes</button></dialog>
+<dialog id="areaPopup" class="area-popup" aria-label="Area notes"><div class="dialog-heading"><h2 id="popupTitle">Notes</h2><button id="minimizeNotes" aria-label="Minimize notes">−</button></div><div id="popupTabs" class="popup-tabs"></div><div id="popupContent" class="markdown-body"></div><button id="editPopupArea">Edit notes</button><figure id="notesMinimap" aria-label="Zoomed map while reading notes"><svg id="notesMiniMap" viewBox="0 0 180 180" aria-label="Nearby POIs, routes, players and trains"><image id="notesMiniImage" width="1000" height="1000"/><g id="notesMiniMarkers"></g></svg><figcaption id="notesMiniCaption">Area overview</figcaption></figure></dialog>
 <button id="restoreNotes" class="restore-notes glass" hidden>Notes</button>
+<dialog id="iconDialog" class="icon-dialog" aria-labelledby="iconTitle"><div class="dialog-heading"><h2 id="iconTitle">Choose a POI icon</h2><button id="closeIcons" aria-label="Close icon picker">×</button></div><div class="icon-search"><label>Search the full Lucide library<input id="iconSearch" type="search" placeholder="Try train, flag, key, mountain…" autocomplete="off"></label><p id="iconResults" role="status"></p></div><div id="iconGrid" class="icon-grid" aria-label="Lucide icons"></div><p id="iconEmpty" class="muted" hidden>No icons match. Try a different name.</p><button id="moreIcons">Show more icons</button></dialog>
+<dialog id="importDialog" class="import-dialog" aria-labelledby="importTitle"><div class="dialog-heading"><h2 id="importTitle">Import shared pack</h2></div><p id="importSummary"></p><p class="muted">Add creates separate copies. Replace removes your current plan; export it first if you want a copy.</p><div class="buttons"><button id="mergePack" class="primary">Add to my pack</button><button id="replacePack" class="danger">Replace my pack</button><button id="cancelImport">Cancel</button></div></dialog>
 <script type="module" src="/app.mjs"></script></body></html>
 
 
