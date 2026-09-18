@@ -42,7 +42,7 @@ try {
   assert.equal(mapBytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
   assert.equal(mapBytes.readUInt32BE(16),4096);
   assert.equal(mapBytes.readUInt32BE(20),4096);
-  for(const asset of ['/','/map.png','/app.mjs','/core.mjs','/planner.mjs','/minimap.mjs','/icons.mjs','/lucide-catalog.mjs','/planning-data.mjs','/styles.css','/notes.mjs','/markdown.mjs','/vendor.mjs']) {
+  for(const asset of ['/','/map.png','/app.mjs','/core.mjs','/planner.mjs','/auto-run.mjs','/minimap.mjs','/icons.mjs','/lucide-catalog.mjs','/planning-data.mjs','/styles.css','/notes.mjs','/markdown.mjs','/vendor.mjs']) {
     const response=await fetch(origin+asset);assert.equal(response.status,200,asset);
     assert.ok((await response.arrayBuffer()).byteLength>0,asset);
   }

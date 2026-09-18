@@ -20,7 +20,7 @@ Search names and notes, filter POI categories, and toggle POI/route layers. The 
 
 **Export pack** downloads the saved POIs, paths, steps, area notes, images, and calibration as JSON. Send that file to a teammate. **Import pack** previews its contents; **Add to my pack** imports independent copies and keeps your alignment, while **Replace my pack** replaces the plan and alignment. New pack version 2 supports old version 1 imports; older app versions cannot open new packs. A successful save keeps the previous on-disk state in `data/route-pack.previous.json`.
 
-Choose **Run** beside a route (or switch Plan to Run). Follow the next-objective card, locate linked POIs, and tick off steps. The manual real-time timer supports start/pause/resume/reset; it and the checklist persist in this browser, separately from shared plans. It is not an autosplitter or an official game-time timer.
+Choose **Run** beside a route (or switch Plan to Run), select your player, and press **Start timer**. Linked POI steps advance automatically after arrival and departure, while the map follows you. The real-time timer supports pause/resume/reset; it and progress persist in this browser, separately from shared plans. It is not an official game-time timer.
 
 This release includes the existing v0.1.3 game plugin unchanged; the new features run in the companion. Starting the updated package replaces an older matching companion server automatically. Refresh an already-open companion page to load the new tools.
 
@@ -59,7 +59,7 @@ node companion/server.mjs
 
 Set `BIGWALK_PATH` to use another game directory and `COMPANION_DATA_DIR` to use another notes directory. `COMPANION_TELEMETRY_DIR` overrides the default game's `BepInEx/companion` directory for managed profiles. `PORT` defaults to 4317. Browser dependencies are bundled; the running server needs no npm install.
 
-To package a release, place the original build 788 loader ZIP from [BepInEx builds](https://builds.bepinex.dev/projects/bepinex_be) in `.local/downloads/`, then run `./scripts/package-release.ps1`. The script verifies its checksum and packages the compiled reader, Node runtime, loader, map, clean calibration, and third-party notices. Verify the output with `node scripts/test-package.mjs releases/BigWalk-Companion-v0.2.0-win-x64`.
+To package a release, place the original build 788 loader ZIP from [BepInEx builds](https://builds.bepinex.dev/projects/bepinex_be) in `.local/downloads/`, then run `./scripts/package-release.ps1`. The script verifies its checksum and packages the compiled reader, Node runtime, loader, map, clean calibration, and third-party notices. Verify the output with `node scripts/test-package.mjs releases/BigWalk-Companion-v0.3.0-win-x64`.
 
 Game updates may require rebuilding the reader against regenerated interop assemblies. This is an unofficial companion, not affiliated with Big Walk's developers.
 
@@ -67,3 +67,13 @@ Game updates may require rebuilding the reader against regenerated interop assem
 Full-screen area notes keep a zoomed-in minimap in the bottom-left corner. It follows the selected player and shows nearby authored routes, POIs, other players, and trains. During replay it follows the recorded position; if telemetry is stale it labels the last known position.
 
 The icon picker includes all 1,848 canonical icons from Lucide 1.47.0, bundled locally. Search icon names or use **Show more icons** to browse the full grid. Icon choices survive save, reload, and pack sharing. Run `npm run build` to regenerate the catalog when updating the pinned Lucide dependency.
+
+## Hands-free running (v0.3.0)
+
+Choose a route and the player to follow, then press **Start timer**. The map follows that player, a compass-style arrow points in the map direction of the next POI, and the relevant portion of the drawn route pulses on the main map and notes minimap. The active route card stays above full-screen notes.
+
+Stay within the arrival radius for at least half a second to register arrival. **Instructions remain on the current step until you leave its vicinity**; departure completes the step and selects the next. The default arrival/exit radii are 12/18 horizontal world units. The arrival radius can be adjusted before starting; the exit radius is 1.5 times that value to avoid boundary flicker. Actual puzzle completion is not detected. Calibration affects proximity accuracy.
+
+Completed steps disappear from the active checklist. Long step instructions page automatically every 15 seconds. The real-time timer stops after leaving the last checkpoint. Unlinked instruction steps accompany the next linked POI; trailing instructions accompany the final POI. A route needs linked POI steps for automatic progress. Progress is saved in this browser separately from route data.
+
+Stale/missing telemetry and replay never advance an attempt. A game-session change pauses the timer; changing the followed player suspends advancement until the original runner is selected again. This is an arrival/departure tracker, not game-event autosplitting or an official game-time timer.

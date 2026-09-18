@@ -1,4 +1,4 @@
-BIG WALK COMPANION v0.2.0 - WINDOWS
+BIG WALK COMPANION v0.3.0 - WINDOWS
 
 1. Extract the entire ZIP into a writable folder. Do not run inside the ZIP.
 2. Close Big Walk and double-click Install.cmd.
@@ -43,12 +43,12 @@ vertices to remove. Undo/redo and browser-local draft recovery are included.
 Search and category filters help find POIs; layer toggles hide POIs/routes.
 Export pack shares all saved pins, paths, steps, notes, images and alignment.
 Import pack offers Add (independent copies, keeps your alignment) or Replace.
-New packs require v0.2.0 or newer; old area-only packs can still be imported.
-Run mode shows your next step, checklist and a manual start/pause/reset timer.
+New packs require v0.3.0 or newer; old area-only packs can still be imported.
+Run mode follows your player and advances linked POI steps after arrival and departure.
 The checklist and timer stay in your browser and are not included in exports.
 The previous saved pack is kept in data/route-pack.previous.json.
 This release retains the working v0.1.3 game plugin; the planner is part of
-companion v0.2.0. Starting this package updates the matching background server.
+companion v0.3.0. Starting this package updates the matching background server.
 Refresh already-open companion pages after starting the new package.
 
 MOD MANAGERS
@@ -122,3 +122,13 @@ Manual collection:
 The companion records telemetry, not native crash dumps. Unity may produce
 crash reports, but not every crash creates one. Relaunching can rotate logs.
 If logs were redirected, use -UnityLogPath or -CrashPath with the actual folder.
+
+HANDS-FREE RUN MODE
+Choose a route and player, then Start timer. The map follows the runner and
+highlights the path to the next POI. A direction arrow and current instructions
+stay above full-screen notes. Arrive within 12 world units for half a second;
+instructions remain until you leave 18 units, then the next step takes over.
+Adjust the arrival radius before starting if needed (exit uses 1.5 times it).
+Completed steps hide; long instructions page automatically. The timer stops
+after leaving the last POI. Replay or stale telemetry cannot advance a run.
+Puzzle completion itself is not detected; this tracks arrival and departure.

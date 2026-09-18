@@ -1,11 +1,13 @@
+import {createArrivalTracker,nextCheckpoint,guideSegment} from './auto-run.mjs';
 import {appendIcon,createIconPicker,iconContrast} from './icons.mjs';
 import {POI_CATEGORIES,mergePlanningPacks,removePoi,routeDistance} from './planning-data.mjs';
 import {validatePack} from './core.mjs';
 const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg';
 const clone=value=>structuredClone(value),uid=()=>crypto.randomUUID();
-export function createPlanner({getPack,savePack,prepare,redraw,focusMap,mapPoint,message}){
+export function createPlanner({getPack,savePack,prepare,redraw,focusMap,mapPoint,message,followMap=()=>{}}){
   let draft=null,original='',tool='',drag=null,selectedRoute='',busy=false,history=[],future=[],pendingImport=null;
   let run={routeId:'',done:[],elapsed:0,started:null},recovery=null;
+  const arrival=createArrivalTracker();let tracking=null,guide=null,runStatus='Start the timer to follow this route automatically.';let focusKey='',focusSince=0;
   const iconPicker=createIconPicker(name=>{if(draft?.kind!=='poi'||busy)return;snapshot();draft.icon=name;updateIcon();changed();});
   function updateIcon(){$('poiIconPreview').replaceChildren();appendIcon($('poiIconPreview'),draft?.icon||'map-pin');$('poiIconName').textContent=draft?.icon||'map-pin';}
   $('choosePoiIcon').onclick=()=>{if(draft?.kind==='poi'&&!busy)iconPicker.open(draft.icon);};
@@ -112,6 +114,7 @@ export function createPlanner({getPack,savePack,prepare,redraw,focusMap,mapPoint
     }
     const pois=pack.pois.filter(p=>p.id!==draft?.id&&visiblePoi(p));if(draft?.kind==='poi')pois.push(draft);
     for(const p of pois){const attrs={'data-plan-id':p.id,'data-plan-kind':'poi'};const g=draw('g',attrs);draw('path',{d:`M${p.u*1000},${p.v*1000} l${-7*scale},${-10*scale} h${14*scale} Z`,fill:p.color,...attrs},g);draw('circle',{cx:p.u*1000,cy:p.v*1000-17*scale,r:12*scale,fill:p.color,stroke:'#101719','stroke-width':2*scale,...attrs},g);appendIcon(g,p.icon,{x:p.u*1000-8*scale,y:p.v*1000-25*scale,size:16*scale,color:iconContrast(p.color)});const title=draw('title',{},g);title.textContent=`${p.name} (${p.category})`;const t=draw('text',{x:p.u*1000+17*scale,y:p.v*1000-12*scale,'font-size':12*scale,'paint-order':'stroke','stroke-width':3*scale},g);t.style.stroke='#000';t.textContent=p.name;}
+    if(guide?.segment?.length&&run.started){draw('polyline',{points:guide.segment.map(p=>`${p.u*1000},${p.v*1000}`).join(' '),fill:'none',stroke:'#ffffff','stroke-width':7*scale,'stroke-linecap':'round','stroke-linejoin':'round','pointer-events':'none',class:'route-guide'});if(guide.poi)draw('circle',{cx:guide.poi.u*1000,cy:guide.poi.v*1000,r:19*scale,fill:'none',stroke:'#fff','stroke-width':3*scale,'pointer-events':'none',class:'route-guide'});}
     const r=pack.routes.find(r=>r.id===selectedRoute);if(r&&visibleRoute(r))r.steps.forEach((s,i)=>{const p=pack.pois.find(p=>p.id===s.poiId);if(!p||!visiblePoi(p))return;draw('circle',{cx:p.u*1000+10*scale,cy:p.v*1000-28*scale,r:7*scale,fill:'#131a15',stroke:r.color,'stroke-width':scale,'pointer-events':'none'});const t=draw('text',{x:p.u*1000+10*scale,y:p.v*1000-25*scale,'text-anchor':'middle','font-size':9*scale});t.textContent=i+1;});
   }
   const map=$('map');
@@ -143,25 +146,75 @@ export function createPlanner({getPack,savePack,prepare,redraw,focusMap,mapPoint
   $('routePicker').onchange=()=>{selectedRoute=$('routePicker').value;renderRun();redraw();};
   function renderRun(){
     const r=getPack()?.routes.find(r=>r.id===selectedRoute);$('runSteps').replaceChildren();$('runEmpty').hidden=!!r;
-    $('runControls').hidden=!r;$('runDetails').hidden=!r;$('routePicker').value=selectedRoute;if(!r)return;
-    const active=run.routeId===r.id,done=active?run.done:[],next=r.steps.find(s=>!done.includes(s.id));
+    $('runControls').hidden=!r;$('runDetails').hidden=!r;$('routePicker').value=selectedRoute;if(!r){renderFocus();return;}
+    const active=run.routeId===r.id,done=active?run.done:[],next=nextCheckpoint(r,done)||r.steps.find(s=>!done.includes(s.id));
     $('nextObjective').textContent=next?`Next: ${next.name}`:r.steps.length?'All steps complete':'Add steps in Plan mode to create a checklist.';
     $('objectiveNotes').textContent=next?.notes||'';$('routeNotes').textContent=r.notes;
     const distance=routeDistance(r.points,getPack().calibration);$('routeStats').textContent=`${r.steps.length} ${r.steps.length===1?'step':'steps'} · ${r.points.length} path points${distance===null?'':` · ≈ ${Math.round(distance).toLocaleString()} world units (horizontal)`}`;
     $('runTimer').textContent=clock(active?elapsed():0);$('startRun').textContent=active&&run.started?'Pause timer':active&&run.elapsed?'Resume timer':'Start timer';
-    r.steps.forEach((s,i)=>{const row=element('div',null,$('runSteps'),{className:'run-step'}),label=element('label',null,row,{className:'check'}),check=element('input',null,label,{type:'checkbox',checked:done.includes(s.id)});element('span',`${i+1}. ${s.name}`,label);check.onchange=()=>{if(!activateRun()){check.checked=!check.checked;return;}run.done=check.checked?[...run.done,s.id]:run.done.filter(id=>id!==s.id);persistRun();renderRun();};if(s.poiId){const p=getPack().pois.find(p=>p.id===s.poiId);if(p)button('⌖',row,()=>focusItem(p,'poi')).setAttribute('aria-label',`Locate step ${i+1}`);}if(s.notes)element('p',s.notes,row);});
+    r.steps.forEach((s,i)=>{if(done.includes(s.id))return;const row=element('div',null,$('runSteps'),{className:'run-step'}),label=element('label',null,row,{className:'check'}),check=element('input',null,label,{type:'checkbox',checked:done.includes(s.id)});element('span',`${i+1}. ${s.name}`,label);check.onchange=()=>{if(!activateRun()){check.checked=!check.checked;return;}run.done=check.checked?[...run.done,s.id]:run.done.filter(id=>id!==s.id);persistRun();renderRun();};if(s.poiId){const p=getPack().pois.find(p=>p.id===s.poiId);if(p)button('⌖',row,()=>focusItem(p,'poi')).setAttribute('aria-label',`Locate step ${i+1}`);}if(s.notes)element('p',s.notes,row);});renderFocus();
   }
   function activateRun(){if(run.routeId===selectedRoute)return true;if(run.routeId&&(run.elapsed||run.started||run.done.length)&&!confirm('Start a new checklist for this route? This resets the previous attempt.'))return false;run={routeId:selectedRoute,done:[],elapsed:0,started:null};return true;}
-  $('startRun').onclick=()=>{if(!selectedRoute||!activateRun())return;if(run.started){run.elapsed=elapsed();run.started=null;}else run.started=Date.now();persistRun();renderRun();};
-  $('resetRun').onclick=()=>{if(!selectedRoute||!confirm('Reset this attempt’s timer and checklist?'))return;run={routeId:selectedRoute,done:[],elapsed:0,started:null};persistRun();renderRun();};
+  $('startRun').onclick=()=>{
+    if(!selectedRoute||!activateRun())return;
+    if(run.started){run.elapsed=elapsed();run.started=null;runStatus='Paused';}
+    else{
+      const route=getPack().routes.find(r=>r.id===selectedRoute);
+      if(!nextCheckpoint(route,run.done)){message(route.steps.length?'This attempt is complete. Reset it to run again.':'Add POI-linked steps before starting a hands-free run.');return;}
+      run.started=Date.now();run.finished=false;run.playerId=tracking?.player?.id||null;run.sessionId=tracking?.frame?.runId||null;
+      run.radius=Math.max(2,Math.min(100,Number($('arrivalRadius').value)||12));runStatus='Waiting for fresh player position…';
+      $('plannerMode').value='run';switchMode();
+    }
+    arrival.reset();persistRun();renderRun();redraw();
+  };
+  $('focusPause').onclick=()=>$('startRun').click();
+  $('resetRun').onclick=()=>{if(!selectedRoute||!confirm('Reset this attempt’s timer and checklist?'))return;run={routeId:selectedRoute,done:[],elapsed:0,started:null};arrival.reset();guide=null;runStatus='Start the timer to follow this route automatically.';persistRun();renderRun();};
   $('locateNext').onclick=()=>{const r=getPack().routes.find(r=>r.id===selectedRoute),s=r?.steps.find(s=>!(run.routeId===r.id&&run.done.includes(s.id))),p=getPack().pois.find(p=>p.id===s?.poiId);if(p)focusItem(p,'poi');else message('The next step has no linked POI. Link one when editing the route.');};
-  setInterval(()=>{if(run.routeId===selectedRoute)$('runTimer').textContent=clock(elapsed());},250);
+  setInterval(()=>{if(run.routeId===selectedRoute){$('runTimer').textContent=clock(elapsed());$('focusTime').textContent=clock(elapsed());}},250);
   try{const value=JSON.parse(localStorage.getItem(runKey));if(value&&typeof value.routeId==='string'&&Array.isArray(value.done)&&value.done.every(s=>typeof s==='string')&&Number.isFinite(value.elapsed)&&value.elapsed>=0&&(value.started===null||Number.isFinite(value.started)))run=value;recovery=JSON.parse(localStorage.getItem(storageKey));}catch{}
   $('restorePlan').onclick=()=>{if(!recovery||!leave()||!prepare())return;try{const d=recovery.draft,pack=clone(getPack());const record=clone(d);delete record.kind;if(typeof record.name==='string'&&!record.name.trim())record.name='Recovered draft';for(const step of record.steps||[])if(typeof step.name==='string'&&!step.name.trim())step.name='Recovered step';if(d.kind==='route'&&d.points.length<2){if(!d.points.every(p=>Number.isFinite(p.u)&&Number.isFinite(p.v)&&p.u>=0&&p.u<=1&&p.v>=0&&p.v<=1))throw new Error('Invalid draft');const first=d.points[0]||{u:0,v:0};record.points=[first,first];}const list=d.kind==='poi'?pack.pois:pack.routes;const i=list.findIndex(p=>p.id===d.id);if(i<0)list.push(record);else list[i]=record;validatePack(pack);draft=d;original=recovery.original;setTool(d.kind==='route'&&d.points.length<2?'route':'');if(tool!=='route')showEditor();changed();$('draftRecovery').hidden=true;}catch{message('The saved draft cannot be restored to this pack.');}};
   $('discardPlan').onclick=()=>{recovery=null;$('draftRecovery').hidden=true;try{localStorage.removeItem(storageKey);}catch{}};
   $('draftRecovery').hidden=!recovery?.draft;
+  function renderFocus(){
+    const r=getPack()?.routes.find(r=>r.id===selectedRoute),active=run.routeId===selectedRoute;
+    const visible=$('plannerMode').value==='run'&&r&&active&&(run.started||run.elapsed||run.finished);
+    const card=$('runFocus');card.hidden=!visible;document.body.classList.toggle('running-route',!!visible);
+    if(!visible)return;
+    const parent=$('areaPopup').open?$('areaPopup'):$('focusDock');if(card.parentElement!==parent)parent.append(card);
+    const next=nextCheckpoint(r,run.done),index=r.steps.findIndex(s=>s.id===next?.id);
+    $('focusRoute').textContent=r.name;$('focusTitle').textContent=next?.name||'Route complete';
+    const key=`${r.id}:${next?.id||'complete'}`;if(key!==focusKey){focusKey=key;focusSince=Date.now();}
+    const lastLinked=next&&!r.steps.slice(index+1).some(s=>s.poiId&&!run.done.includes(s.id));
+    const text=r.steps.filter((s,i)=>!run.done.includes(s.id)&&(i<=index||(lastLinked&&!s.poiId))).map(s=>s.notes||getPack().pois.find(p=>p.id===s.poiId)?.notes||'').filter(Boolean).join(' ');
+    const words=text.split(/\s+/).filter(Boolean),pages=Math.max(1,Math.ceil(words.length/45)),page=Math.floor((Date.now()-focusSince)/15000)%pages;
+    $('focusInstructions').textContent=words.slice(page*45,(page+1)*45).join(' ');
+    $('focusPage').textContent=pages>1?`Instructions ${page+1}/${pages} · changes every 15 seconds`:'';
+    $('focusProgress').textContent=next?`Step ${index+1} of ${r.steps.length}`:`${r.steps.length} steps complete`;
+    $('focusStatus').textContent=runStatus;$('focusTime').textContent=clock(elapsed());
+    $('focusPause').textContent=run.started?'Pause':'Resume';$('focusPause').hidden=!!run.finished;
+    $('focusDistance').textContent=guide?.distance!=null?`${Math.round(guide.distance)} units to POI`:'';
+    $('focusArrow').hidden=!guide?.point||!guide?.poi||!run.started||guide.distance<1;
+    if(guide?.point&&guide?.poi){const degrees=Math.atan2(guide.poi.u-guide.point.u,guide.point.v-guide.poi.v)*180/Math.PI;$('focusArrowShape').setAttribute('transform',`rotate(${degrees} 24 24)`);}
+    const upcoming=r.steps.slice(index+1).find(s=>!run.done.includes(s.id)&&s.poiId);$('focusUpcoming').textContent=next&&upcoming?`Then: ${upcoming.name}`:'';
+  }
+  function updateTracking(value){
+    tracking=value;const r=getPack()?.routes.find(r=>r.id===run.routeId);
+    if(!run.started||!r||selectedRoute!==run.routeId||$('plannerMode').value!=='run'){arrival.reset();renderFocus();return;}
+    const {player,frame,projection,replay,ageMs}=value;
+    if(replay||ageMs>=3000||!player||!projection){arrival.reset();guide=null;runStatus=replay?'Replay — automatic progress suspended':!projection?'Map alignment required for auto-advance':'Waiting for fresh player position…';renderFocus();return;}
+    if(run.sessionId&&run.sessionId!==frame.runId){run.elapsed=elapsed();run.started=null;arrival.reset();guide=null;runStatus='Game session changed — timer paused';persistRun();renderRun();return;}
+    if(run.playerId&&run.playerId!==player.id){arrival.reset();guide=null;runStatus='Select the player this attempt started with';renderFocus();return;}
+    if(!run.playerId){run.playerId=player.id;run.sessionId=frame.runId;persistRun();}
+    const point=projection(player),pack=getPack();
+    const result=arrival.update({route:r,pack,done:run.done,point,playerId:player.id,sessionId:frame.runId,timestamp:frame.timestamp,sequence:frame.sequence,active:true,replay,ageMs,radius:run.radius||12});
+    if(result.completed.length){run.done=[...new Set([...run.done,...result.completed])];if(!nextCheckpoint(r,run.done)){run.elapsed=elapsed();run.started=null;run.finished=true;runStatus='Route complete — timer stopped';}persistRun();renderRun();}
+    const next=nextCheckpoint(r,run.done),poi=pack.pois.find(p=>p.id===next?.poiId);
+    guide={point,poi,distance:poi?routeDistance([point,poi],pack.calibration):null,segment:poi?guideSegment(r.points,point,poi):[]};
+    if(run.started){runStatus=result.arrived&&!result.completed.length?`At this POI — instructions stay until you leave ${Math.round((run.radius||12)*1.5)} world units`:`Following ${player.local?'you':player.name||'player'} · arrive within ${run.radius||12} units, leave to advance`;followMap(point);}
+    renderFocus();
+  }
   function offerImport(pack){if(!leave()||!prepare())return;pendingImport=pack;$('importSummary').textContent=`${pack.name}: ${pack.pois.length} POIs, ${pack.routes.length} routes, ${pack.areas.length} areas. Add keeps your current alignment; replace uses the imported alignment.`;$('importDialog').showModal();}
   for(const [id,merge]of [['mergePack',true],['replacePack',false]])$(id).onclick=async()=>{if(!pendingImport||busy)return;busy=true;$('mergePack').disabled=$('replacePack').disabled=true;try{const pack=merge?mergePlanningPacks(getPack(),pendingImport):pendingImport;if(await savePack(pack)){pendingImport=null;$('importDialog').close();renderList();message('Shared pack imported and saved.');}}catch(e){message(e.message);}finally{busy=false;$('mergePack').disabled=$('replacePack').disabled=false;}};
   $('cancelImport').onclick=()=>$('importDialog').close();
-  return {renderMap,renderList,leave,offerImport,isEditing:()=>!!draft||!!tool||$('importDialog').open,ready(){selectedRoute=run.routeId;renderList();switchMode();}};
+  return {renderMap,renderList,leave,offerImport,updateTracking,renderFocus,getGuide:()=>run.started?guide:null,isEditing:()=>!!draft||!!tool||$('importDialog').open,ready(){selectedRoute=run.routeId;renderList();switchMode();}};
 }

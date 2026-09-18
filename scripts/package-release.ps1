@@ -1,4 +1,4 @@
-param([string]$NodePath = '', [switch]$SkipBuild, [string]$Version='0.2.0')
+param([string]$NodePath = '', [switch]$SkipBuild, [string]$Version='0.3.0')
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
 if (!$NodePath) { $NodePath = (Get-Command node).Source }

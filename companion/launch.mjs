@@ -37,7 +37,7 @@ async function main(){
     console.log(active?'Companion stopped.':'Companion is not running.');
     return;
   }
-  if(active&&active.appVersion!=='0.2.0'){
+  if(active&&active.appVersion!=='0.3.0'){
     const response=await fetch(origin+'/api/shutdown',{method:'POST',signal:AbortSignal.timeout(5000)});
     if(!response.ok)throw new Error('Could not stop the previous companion version.');
     const deadline=Date.now()+5000;

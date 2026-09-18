@@ -94,14 +94,14 @@ function renderOverlay(){
       }
     }
   }
-  planner?.renderMap(scale);renderNotes();renderNotesMinimap({svg,pack:state.pack,projection,player:selected(),players:frame?.players||[],trains:trainMarkers(frame),activeArea:state.pack.areas.find(a=>previousAreas.has(a.id)),available:replay||liveAge<3000,replay,label:selected()?label(selected()):'',mapReady,mapHref:$('mapImage').getAttribute('href')});
+  planner?.renderMap(scale);renderNotes();planner?.renderFocus();renderNotesMinimap({guidance:planner?.getGuide(),svg,pack:state.pack,projection,player:selected(),players:frame?.players||[],trains:trainMarkers(frame),activeArea:state.pack.areas.find(a=>previousAreas.has(a.id)),available:replay||liveAge<3000,replay,label:selected()?label(selected()):'',mapReady,mapHref:$('mapImage').getAttribute('href')});
 }
 function addTrail(f){
   const append=(points,p)=>{if(points.at(-1)?.timestamp===f.timestamp)return;points.push({x:p.x,y:p.y,z:p.z,timestamp:f.timestamp});if(points.length>10000)points.shift();};
   for(const t of trainMarkers(f)){if(!trainTrails.has(t.id))trainTrails.set(t.id,{color:t.color,points:[]});append(trainTrails.get(t.id).points,t);}
   for(const p of f.players||[]){if(!trails.has(p.id))trails.set(p.id,[]);append(trails.get(p.id),p);}
 }
-function showFrame(f){frame=f;renderPlayers();renderOverlay();}
+function showFrame(f){frame=f;renderPlayers();planner?.updateTracking({player:selected(),frame,projection,replay,ageMs:liveAge});renderOverlay();}
 function setReplayIndex(value){index=Math.max(0,Math.min(frames.length-1,value));trails=new Map();trainTrails=new Map();for(let i=0;i<=index;i++)addTrail(frames[i]);$('timeline').value=index;showFrame(frames[index]);const seconds=(frames[index].timestamp-frames[0].timestamp)/1000;$('time').textContent=`${seconds.toFixed(1)}s`;}
 async function poll(){
   if(!mapReady&&Date.now()>nextMapCheck){nextMapCheck=Date.now()+5000;try{const status=await api('/api/map-status');if(status.available){mapReady=true;$('mapImage').setAttribute('href',`/map.png?t=${Date.now()}`);renderOverlay();}}catch{}}
@@ -109,7 +109,7 @@ async function poll(){
       
       if(live.frame){const key=`${live.frame.runId}:${live.frame.sequence}`;if(live.frame.runId!==lastRun){trails=new Map();trainTrails=new Map();previousAreas.clear();lastRun=live.frame.runId;}if(key!==lastSequence){lastSequence=key;addTrail(live.frame);}showFrame(live.frame);}else showFrame(null);
     }
-  }catch(e){liveAge=Infinity;$('connection').textContent='Companion disconnected';renderOverlay();}
+  }catch(e){liveAge=Infinity;planner?.updateTracking({player:null,frame,projection,replay,ageMs:Infinity});$('connection').textContent='Companion disconnected';renderOverlay();}
   setTimeout(poll,300);
 }
 async function loadRecordings(){const value=$('recordings').value;const items=await api('/api/recordings');$('recordings').replaceChildren();const live=textNode('option','Live session',$('recordings'));live.value='live';for(const item of items){const o=textNode('option',new Date(item.modified).toLocaleString(),$('recordings'));o.value=item.id;}if([...$('recordings').options].some(o=>o.value===value))$('recordings').value=value;}
@@ -161,6 +161,7 @@ $('importFile').onchange=async()=>{const file=$('importFile').files[0];if(!file)
 new ResizeObserver(()=>renderOverlay()).observe($('mapWrap'));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!notesUI.isOpen()&&!$('areaPopup').open){if(boundsEdit){e.preventDefault();if(!boundsSaving)endBounds();return;}setMode('pan');pointer=null;$('draft').replaceChildren();}});
 planner=createPlanner({getPack:()=>state?.pack,savePack,message,mapPoint,redraw:renderOverlay,
+  followMap:point=>{const rect=$('map').getBoundingClientRect(),panel=document.querySelector('aside').getBoundingClientRect(),pixels=Math.min(rect.width,rect.height),available=panel.top<rect.bottom?Math.max(200,panel.left-rect.left-24):rect.width;view={x:point.u*1000-110+(rect.width-available)*220/(2*pixels),y:point.v*1000-110,w:220,h:220};$('map').setAttribute('viewBox',`${view.x} ${view.y} 220 220`);},
   prepare:()=>{if(!leaveBounds()||(notesUI.isOpen()&&!closeEditor()))return false;notesUI.minimize();setMode('pan');return true;},
   focusMap:points=>{
     const xs=points.map(p=>p.u*1000),ys=points.map(p=>p.v*1000),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);

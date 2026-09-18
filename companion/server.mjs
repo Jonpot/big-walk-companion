@@ -20,7 +20,7 @@ async function mapFile(){for(const file of [path.join(assets,'map-candidates/Pap
 try {const saved=JSON.parse(await fs.readFile(packPath,'utf8')); state={revision:saved.revision,pack:validatePack(saved.pack)};}
 catch(e){if(e.code!=='ENOENT') throw new Error(`Cannot read saved route pack: ${e.message}`);}
 let writeQueue=Promise.resolve();
-const staticFiles=new Map([['/','index.html'],['/app.mjs','app.mjs'],['/core.mjs','core.mjs'],['/planner.mjs','planner.mjs'],['/minimap.mjs','minimap.mjs'],['/icons.mjs','icons.mjs'],['/lucide-catalog.mjs','lucide-catalog.mjs'],['/planning-data.mjs','planning-data.mjs'],['/styles.css','styles.css'],['/favicon.svg','favicon.svg'],['/notes.mjs','notes.mjs'],['/vendor.mjs','vendor.mjs'],['/markdown.mjs','markdown.mjs']]);
+const staticFiles=new Map([['/','index.html'],['/app.mjs','app.mjs'],['/core.mjs','core.mjs'],['/planner.mjs','planner.mjs'],['/auto-run.mjs','auto-run.mjs'],['/minimap.mjs','minimap.mjs'],['/icons.mjs','icons.mjs'],['/lucide-catalog.mjs','lucide-catalog.mjs'],['/planning-data.mjs','planning-data.mjs'],['/styles.css','styles.css'],['/favicon.svg','favicon.svg'],['/notes.mjs','notes.mjs'],['/vendor.mjs','vendor.mjs'],['/markdown.mjs','markdown.mjs']]);
 const types={'.html':'text/html; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png'};
 function reply(res,status,obj){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(obj));}
 async function body(req){const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>MAX_PACK_BYTES)throw new Error('Route pack is too large.');chunks.push(chunk);}return JSON.parse(Buffer.concat(chunks).toString('utf8'));}
@@ -31,7 +31,7 @@ const server=http.createServer(async(req,res)=>{
   if(req.headers.host!==`127.0.0.1:${port}` || (req.headers.origin && req.headers.origin!==origin))return reply(res,403,{error:'Open the companion using its local address.'});
   try{
     const url=new URL(req.url,origin);
-    if(req.method==='GET' && url.pathname==='/api/health')return reply(res,200,{app:'big-walk-companion',appVersion:'0.2.0',launchProtocol:1,pid:process.pid,dataDirectory:path.resolve(data),telemetryDirectory:path.resolve(telemetry)});
+    if(req.method==='GET' && url.pathname==='/api/health')return reply(res,200,{app:'big-walk-companion',appVersion:'0.3.0',launchProtocol:1,pid:process.pid,dataDirectory:path.resolve(data),telemetryDirectory:path.resolve(telemetry)});
     if(req.method==='POST' && url.pathname==='/api/open-browser')return reply(res,200,{opened:await openBrowser(origin+'/')});
     if(req.method==='POST' && url.pathname==='/api/shutdown'){
       await writeQueue;reply(res,200,{stopped:true});server.close();server.closeIdleConnections();return;
