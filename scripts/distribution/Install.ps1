@@ -1,4 +1,4 @@
-param([string]$GamePath, [switch]$Launch, [string]$BepInExPath, [switch]$UseGameFolder, [switch]$Interactive)
+param([string]$GamePath, [switch]$Launch, [string]$BepInExPath, [switch]$UseGameFolder, [switch]$Interactive, [string]$DataDirectory)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GamePath.ps1')
 . (Join-Path $PSScriptRoot 'Loader.ps1')
@@ -28,6 +28,14 @@ else {
 $managed = [IO.Path]::GetFullPath($bepFolder).TrimEnd('\') -ne [IO.Path]::GetFullPath((Join-Path $game 'BepInEx')).TrimEnd('\')
 Write-Host "BepInEx folder: $bepFolder"
 $pluginFolder = Join-Path $bepFolder 'plugins\BigWalk.Companion'
+$launchFile = Join-Path $pluginFolder 'companion-launch.json'
+if (!$DataDirectory -and (Test-Path -LiteralPath $launchFile)) {
+    $previousLaunch = Get-Content -LiteralPath $launchFile -Raw | ConvertFrom-Json
+    if ($previousLaunch.gamePath -eq $game) { $DataDirectory = $previousLaunch.dataDirectory }
+}
+if (!$DataDirectory) { $DataDirectory = Join-Path $packageRoot 'data' }
+$DataDirectory = [IO.Path]::GetFullPath($DataDirectory)
+[IO.Directory]::CreateDirectory($DataDirectory) | Out-Null
 New-Item -ItemType Directory -Force -Path $pluginFolder | Out-Null
 $pluginFile = Join-Path $pluginFolder 'BigWalk.Companion.dll'
 if (Test-Path -LiteralPath $pluginFile) {
@@ -36,14 +44,17 @@ if (Test-Path -LiteralPath $pluginFile) {
     Copy-Item -LiteralPath $pluginFile -Destination (Join-Path $backupFolder (('BigWalk.Companion-{0}.dll.bak' -f (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))))
 }
 Copy-Item -LiteralPath (Join-Path $packageRoot 'mod\BigWalk.Companion.dll') -Destination $pluginFile -Force
+[IO.File]::WriteAllText(($launchFile + '.tmp'), (@{packageRoot=$packageRoot; gamePath=$game; dataDirectory=$DataDirectory} | ConvertTo-Json))
+Move-Item -LiteralPath ($launchFile + '.tmp') -Destination $launchFile -Force
 $locationFile = Join-Path $packageRoot 'install-location.json'
-[IO.File]::WriteAllText(($locationFile + '.tmp'), (@{game=$game; bepInEx=$bepFolder} | ConvertTo-Json))
+[IO.File]::WriteAllText(($locationFile + '.tmp'), (@{game=$game; bepInEx=$bepFolder; dataDirectory=$DataDirectory} | ConvertTo-Json))
 Move-Item -LiteralPath ($locationFile + '.tmp') -Destination $locationFile -Force
 Write-Host 'Installed Big Walk Companion. The first modded game launch can take several minutes.'
+Write-Host "Notes and companion logs: $DataDirectory"
 if ($managed) {
     Write-Host 'Launch Big Walk MODDED through the mod manager using this profile.'
     if ($Launch) { & (Join-Path $PSScriptRoot 'Start.ps1') }
-    else { Write-Host 'Then run Start Companion.cmd; it remembers this profile.' }
+    else { Write-Host 'The mod will automatically open the companion when the game loads.' }
 } elseif ($Launch) {
     $steamApps = Split-Path (Split-Path $game -Parent) -Parent
     $appId = $null
@@ -57,5 +68,5 @@ if ($managed) {
     else { Start-Process -FilePath (Join-Path $game 'Big Walk.exe') -WorkingDirectory $game }
     & (Join-Path $PSScriptRoot 'Start.ps1')
 } else {
-    Write-Host 'Launch Big Walk through Steam, join a world, and run Start Companion.cmd.'
+    Write-Host 'Launch Big Walk through Steam. The mod will automatically open the companion.'
 }

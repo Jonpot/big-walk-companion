@@ -1,4 +1,4 @@
-BIG WALK COMPANION v0.1.2 - WINDOWS
+BIG WALK COMPANION v0.1.3 - WINDOWS
 
 1. Extract the entire ZIP into a writable folder. Do not run inside the ZIP.
 2. Close Big Walk and double-click Install.cmd.
@@ -9,14 +9,22 @@ BIG WALK COMPANION v0.1.2 - WINDOWS
    Big Walk and the companion. For a managed profile, launch MODDED through
    the manager yourself; the installer opens the companion using that profile.
    Join a world. The first modded launch can take
-   several minutes. Keep the companion command window open.
+   several minutes. The companion runs in the background; no command window
+   needs to stay open.
 
 The calibrated map image is included in the mod and companion package.
 You do not need to finish the starting area, have a progressed save, or open
 the in-game map. The PNG encoding code that caused the crash is removed.
 Existing BepInEx/companion/map.png files are preserved; the bundled image
 also works immediately when the game is not running.
-For later sessions, launch the game and double-click Start Companion.cmd.
+For later sessions, just launch the game. The mod starts the companion and
+opens its browser page automatically. Start Companion.cmd also opens it
+manually; Stop Companion.cmd stops the background server. The server stays
+available after you quit the game so you can review notes and recordings.
+Keep this extracted folder in place. If you move it, run Install.cmd again
+to update the mod's launch registration.
+To disable automatic startup, close the game and set AutoStart = false under
+[Companion] in BepInEx/config/com.jonpot.bigwalk.companion.cfg.
 No Node.js or .NET SDK installation is needed.
 Launchers prefer PowerShell 7 (pwsh.exe) and fall back to Windows PowerShell.
 
@@ -58,6 +66,9 @@ TROUBLESHOOTING
   it. Normal companion use does not require administrator access.
 - Wrong folder: delete game-path.txt beside this file and start again.
 - Missing/moved profile: run Install again and select the current profile.
+- Browser did not open: inspect data/launcher.log and data/server.log beside
+  the companion. If another copy/profile is running, stop that copy first.
+  Startup errors are also logged in BepInEx/LogOutput.log and do not stop play.
 - Removal: close the game and delete only the game folder's
   BepInEx/plugins/BigWalk.Companion/BigWalk.Companion.dll.
 

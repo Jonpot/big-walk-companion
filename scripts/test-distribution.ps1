@@ -24,6 +24,8 @@ Compress-Archive -Path "$fixture\loader\*" -DestinationPath "$package\installer\
 function Get-Process { param([string]$Name) }
 & "$package\scripts\Install.ps1" -GamePath $game
 if ((Get-Content -LiteralPath "$game\BepInEx\plugins\BigWalk.Companion\BigWalk.Companion.dll" -Raw) -ne 'fixture-plugin') { throw 'Fresh install failed.' }
+$registered = Get-Content -LiteralPath "$game\BepInEx\plugins\BigWalk.Companion\companion-launch.json" -Raw | ConvertFrom-Json
+if ($registered.packageRoot -ne $package -or $registered.gamePath -ne $game -or $registered.dataDirectory -ne "$package\data") { throw 'Automatic launch registration is incorrect.' }
 [IO.File]::WriteAllText("$game\doorstop_config.ini", 'keep-me')
 [IO.File]::WriteAllText("$package\mod\BigWalk.Companion.dll", 'updated-plugin')
 & "$package\scripts\Install.ps1" -GamePath $game
@@ -75,6 +77,8 @@ $global:launchedFile = $null; $global:companionStarted = $false
 & "$package\scripts\Install.ps1" -GamePath $conflict -BepInExPath $profile -Launch
 if ($global:launchedFile -or !$global:companionStarted) { throw 'Managed launch started vanilla or failed to open companion.' }
 if (!(Test-Path -LiteralPath "$profile\BepInEx\plugins\BigWalk.Companion\BigWalk.Companion.dll")) { throw 'Managed plugin missing.' }
+$registered = Get-Content -LiteralPath "$profile\BepInEx\plugins\BigWalk.Companion\companion-launch.json" -Raw | ConvertFrom-Json
+if ($registered.packageRoot -ne $package -or $registered.gamePath -ne $conflict) { throw 'Managed automatic launch registration is incorrect.' }
 if (Test-Path -LiteralPath "$conflict\BepInEx") { throw 'Managed install wrote into the game folder.' }
 & "$package\scripts\Install.ps1" -GamePath $conflict
 $saved = Get-Content -LiteralPath "$package\install-location.json" -Raw | ConvertFrom-Json
@@ -83,6 +87,13 @@ if ($saved.bepInEx -ne "$profile\BepInEx") { throw 'Profile selection was not re
 $saved = Get-Content -LiteralPath "$package\install-location.json" -Raw | ConvertFrom-Json
 if ($saved.bepInEx -ne "$game\BepInEx") { throw 'Switching back to game installation failed.' }
 Write-Output 'PASS: managed profile, remembered selection, explicit game selection, no vanilla launch.'
+$customData = Join-Path $fixture 'existing notes'
+& "$package\scripts\Install.ps1" -GamePath $game -DataDirectory $customData
+[IO.File]::WriteAllText((Join-Path $customData 'keep.txt'), 'user-notes')
+& "$package\scripts\Install.ps1" -GamePath $game
+$registered = Get-Content -LiteralPath "$game\BepInEx\plugins\BigWalk.Companion\companion-launch.json" -Raw | ConvertFrom-Json
+if ($registered.dataDirectory -ne $customData -or [IO.File]::ReadAllText((Join-Path $customData 'keep.txt')) -ne 'user-notes') { throw 'Existing notes location was lost on reinstall.' }
+Write-Output 'PASS: custom notes directory preserved across reinstall.'
 
 # Diagnostics contain only targeted fixture logs, report missing files, and omit dumps by default.
 $unity = Join-Path $fixture 'unity logs'

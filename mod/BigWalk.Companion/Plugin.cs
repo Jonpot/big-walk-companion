@@ -15,7 +15,7 @@ namespace BigWalk.Companion;
 [BepInPlugin("com.jonpot.bigwalk.companion", "Big Walk Companion", Plugin.Version)]
 public sealed class Plugin : BasePlugin
 {
-    internal const string Version = "0.1.2";
+    internal const string Version = "0.1.3";
     public override void Load()
     {
         PositionReader.Log = Log;
@@ -25,6 +25,8 @@ public sealed class Plugin : BasePlugin
         Directory.CreateDirectory(PositionReader.OutputDirectory);
         PositionReader.IncludeRawTrainData = Config.Bind("Diagnostics", "IncludeRawTrainData", false,
             "Include verbose per-car diagnostics. Off keeps normal recordings small.").Value;
+        var autoStart = Config.Bind("Companion", "AutoStart", true,
+            "Start the companion in the background and open its map when the game loads. Run Install.cmd again if the companion folder moves.").Value;
         _ = Task.Run(() =>
         {
             try
@@ -33,6 +35,16 @@ public sealed class Plugin : BasePlugin
                     Log.LogInfo("Installed the bundled companion map. No game progress or texture export is required.");
             }
             catch (Exception ex) { Log.LogWarning($"Could not write the bundled map: {ex.Message}"); }
+            if (autoStart)
+            {
+                try
+                {
+                    var registration = Path.Combine(Path.GetDirectoryName(typeof(Plugin).Assembly.Location)!, "companion-launch.json");
+                    CompanionLauncher.Start(registration, PositionReader.OutputDirectory);
+                    Log.LogInfo("Started the companion launcher. Startup details are in the companion data/launcher.log.");
+                }
+                catch (Exception ex) { Log.LogWarning($"Companion automatic startup failed: {ex.Message}"); }
+            }
         });
         AddComponent<PositionReader>();
         Log.LogInfo($"Position reader loaded. Output: {PositionReader.OutputDirectory}");

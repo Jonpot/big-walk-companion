@@ -49,6 +49,9 @@ Copy-DiagnosticFile (Join-Path $game 'doorstop_config.ini') 'bepinex\doorstop_co
 Copy-DiagnosticFile (Join-Path $BepInExPath 'config\com.jonpot.bigwalk.companion.cfg') 'companion\plugin-config.txt'
 Copy-DiagnosticFile (Join-Path $BepInExPath 'companion\positions.json') 'companion\positions.json'
 Copy-DiagnosticFile (Join-Path $packageRoot 'install-location.json') 'companion\install-location.json'
+$notesDirectory = Get-CompanionDataFolder $game
+Copy-DiagnosticFile (Join-Path $notesDirectory 'launcher.log') 'companion\launcher.log'
+Copy-DiagnosticFile (Join-Path $notesDirectory 'server.log') 'companion\server.log'
 try {
     $inventory = @(Get-ChildItem -LiteralPath (Join-Path $BepInExPath 'plugins') -Filter '*.dll' -File -Recurse -ErrorAction Stop | ForEach-Object {
         @{file=$_.FullName.Substring($BepInExPath.Length).TrimStart('\'); version=$_.VersionInfo.FileVersion;

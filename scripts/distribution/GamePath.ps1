@@ -50,3 +50,13 @@ function Get-SavedBepInExFolder([string]$Game) {
     if ($saved.game -ne $Game) { return $null }
     return $saved.bepInEx
 }
+
+function Get-CompanionDataFolder([string]$Game) {
+    $packageRoot = Split-Path $PSScriptRoot -Parent
+    $settings = Join-Path $packageRoot 'install-location.json'
+    if (Test-Path -LiteralPath $settings) {
+        $saved = Get-Content -LiteralPath $settings -Raw | ConvertFrom-Json
+        if ($saved.game -eq $Game -and $saved.dataDirectory) { return $saved.dataDirectory }
+    }
+    return Join-Path $packageRoot 'data'
+}

@@ -1,4 +1,4 @@
-param([string]$GamePath)
+param([string]$GamePath, [switch]$Stop)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GamePath.ps1')
 $packageRoot = Split-Path $PSScriptRoot -Parent
@@ -7,30 +7,11 @@ $bepFolder = Get-SavedBepInExFolder $env:BIGWALK_PATH
 if ($bepFolder) { $bepFolder = Resolve-BepInExFolder $bepFolder }
 else { $bepFolder = Join-Path $env:BIGWALK_PATH 'BepInEx' }
 $env:COMPANION_TELEMETRY_DIR = Join-Path $bepFolder 'companion'
-Write-Host "Reading tracking data from: $env:COMPANION_TELEMETRY_DIR"
-$env:COMPANION_DATA_DIR = Join-Path $packageRoot 'data'
+$env:COMPANION_DATA_DIR = Get-CompanionDataFolder $env:BIGWALK_PATH
+$env:COMPANION_OPEN_BROWSER = '1'
 $env:PORT = '4317'
-$node = Join-Path $packageRoot 'runtime\node.exe'
-$server = Join-Path $packageRoot 'companion\server.mjs'
-try {
-    $existing = Invoke-WebRequest 'http://127.0.0.1:4317/api/state' -UseBasicParsing -TimeoutSec 1
-    if ($existing.StatusCode -eq 200) {
-        Start-Process 'http://127.0.0.1:4317/'
-        Write-Host 'A companion is already running. Close its window first to use this copy.'
-        exit 0
-    }
-} catch {}
-$browserJob = Start-Job -ScriptBlock {
-    for ($attempt = 0; $attempt -lt 50; $attempt++) {
-        try {
-            $response = Invoke-WebRequest 'http://127.0.0.1:4317/api/state' -UseBasicParsing -TimeoutSec 1
-            if ($response.StatusCode -eq 200) { Start-Process 'http://127.0.0.1:4317/'; return }
-        } catch {}
-        Start-Sleep -Milliseconds 200
-    }
-}
-try {
-    Write-Host 'Keep this window open while using the companion. Close it to stop.'
-    & $node $server
-    if ($LASTEXITCODE -ne 0) { throw 'The companion could not start. Check whether another copy is running.' }
-} finally { Stop-Job $browserJob; Remove-Job $browserJob }
+$launchArguments = @((Join-Path $packageRoot 'companion\launch.mjs'))
+if ($Stop) { $launchArguments += '--stop' }
+& (Join-Path $packageRoot 'runtime\node.exe') @launchArguments
+if ($LASTEXITCODE -ne 0) { throw "Companion startup failed. See $env:COMPANION_DATA_DIR\launcher.log." }
+if (!$Stop) { Write-Host 'The companion is running in the background. You can close this window.' }

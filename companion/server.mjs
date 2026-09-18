@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {blankPack,validatePack,MAX_PACK_BYTES} from './dist/core.mjs';
+import {createBrowserOpener} from './browser.mjs';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const assets=path.resolve(root,'../data');
 const data=process.env.COMPANION_DATA_DIR || assets;
@@ -10,6 +11,7 @@ const game=process.env.BIGWALK_PATH || 'C:/Program Files (x86)/Steam/steamapps/c
 const telemetry=process.env.COMPANION_TELEMETRY_DIR || path.join(game,'BepInEx/companion');
 const port=Number(process.env.PORT||4317);
 const origin=`http://127.0.0.1:${port}`;
+const openBrowser=createBrowserOpener();
 await fs.mkdir(data,{recursive:true});
 const packPath=path.join(data,'route-pack.json');
 let state={revision:0,pack:blankPack()};
@@ -29,6 +31,11 @@ const server=http.createServer(async(req,res)=>{
   if(req.headers.host!==`127.0.0.1:${port}` || (req.headers.origin && req.headers.origin!==origin))return reply(res,403,{error:'Open the companion using its local address.'});
   try{
     const url=new URL(req.url,origin);
+    if(req.method==='GET' && url.pathname==='/api/health')return reply(res,200,{app:'big-walk-companion',launchProtocol:1,pid:process.pid,dataDirectory:path.resolve(data),telemetryDirectory:path.resolve(telemetry)});
+    if(req.method==='POST' && url.pathname==='/api/open-browser')return reply(res,200,{opened:await openBrowser(origin+'/')});
+    if(req.method==='POST' && url.pathname==='/api/shutdown'){
+      await writeQueue;reply(res,200,{stopped:true});server.close();server.closeIdleConnections();return;
+    }
     if(req.method==='GET' && url.pathname==='/api/map-status')return reply(res,200,{available:!!(await mapFile())});
     if(req.method==='GET' && url.pathname==='/api/state')return reply(res,200,state);
     if(req.method==='PUT' && url.pathname==='/api/state'){
