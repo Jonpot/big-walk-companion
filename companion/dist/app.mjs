@@ -10,7 +10,9 @@ let mapReady=false,nextMapCheck=0;
 let boundsEdit=null,boundsOriginal=null,boundsSaving=false,planner=null;
 const palette=['#8be7ff','#ec9aff','#ffffff','#ffac6b'];
 async function api(url,options){const res=await fetch(url,options);const result=await res.json();if(!res.ok)throw new Error(result.error||'Request failed');return result;}
-function message(text){$('message').textContent=text;$('message').hidden=!text;}
+let messageTimer;
+function message(text,{timeout=0}={}){clearTimeout(messageTimer);$('messageText').textContent=text;$('message').hidden=!text;if(text&&timeout)messageTimer=setTimeout(()=>message(''),timeout);}
+$('dismissMessage').onclick=()=>message('');
 function svg(tag,attrs,parent){const el=document.createElementNS(NS,tag);for(const [key,val]of Object.entries(attrs))el.setAttribute(key,val);parent.append(el);return el;}
 function textNode(tag,text,parent){const el=document.createElement(tag);el.textContent=text;parent.append(el);return el;}
 let playerAliases=new Map(),renameTarget=null;

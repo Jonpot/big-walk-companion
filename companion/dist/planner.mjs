@@ -67,7 +67,7 @@ export function createPlanner({getPack,savePack,prepare,redraw,focusMap,mapPoint
     const list=kind==='poi'?pack.pois:pack.routes,i=list.findIndex(p=>p.id===record.id);if(i<0)list.push(record);else list[i]=record;
     try{validatePack(pack);}catch(e){message(e.message);return;}
     busy=true;updateEditButtons();
-    try{if(await savePack(pack)){if(kind==='route')selectedRoute=record.id;clearDraft();renderList();renderRun();message('Plan saved. Export pack to share your POIs, routes, steps, and notes.');}}finally{busy=false;updateEditButtons();}
+    try{if(await savePack(pack)){if(kind==='route')selectedRoute=record.id;clearDraft();renderList();renderRun();message('Plan saved. Export pack to share your POIs, routes, steps, and notes.',{timeout:6000});}}finally{busy=false;updateEditButtons();}
   };
   $('deletePlan').onclick=async()=>{
     if(!draft||busy||!confirm(`Delete “${draft.name}”? Linked step instructions will be kept.`))return;

@@ -31,7 +31,7 @@ const server=http.createServer(async(req,res)=>{
   if(req.headers.host!==`127.0.0.1:${port}` || (req.headers.origin && req.headers.origin!==origin))return reply(res,403,{error:'Open the companion using its local address.'});
   try{
     const url=new URL(req.url,origin);
-    if(req.method==='GET' && url.pathname==='/api/health')return reply(res,200,{app:'big-walk-companion',appVersion:'0.3.0',launchProtocol:1,pid:process.pid,dataDirectory:path.resolve(data),telemetryDirectory:path.resolve(telemetry)});
+    if(req.method==='GET' && url.pathname==='/api/health')return reply(res,200,{app:'big-walk-companion',appVersion:'0.3.1',launchProtocol:1,pid:process.pid,dataDirectory:path.resolve(data),telemetryDirectory:path.resolve(telemetry)});
     if(req.method==='POST' && url.pathname==='/api/open-browser')return reply(res,200,{opened:await openBrowser(origin+'/')});
     if(req.method==='POST' && url.pathname==='/api/shutdown'){
       await writeQueue;reply(res,200,{stopped:true});server.close();server.closeIdleConnections();return;
